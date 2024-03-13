@@ -11,6 +11,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define PORT 7658
+
 int main(void) {
  struct sockaddr_in info;
  int socket_entrada, socket_conexao;
@@ -22,9 +24,10 @@ int main(void) {
  if(socket_entrada < 0) {  printf("Vixe!\n");  exit(1); }
 
  info.sin_family = AF_INET;
- info.sin_port = htons(7658);
+ info.sin_port = htons(PORT);
  info.sin_addr.s_addr = INADDR_ANY;
  tamanho_estrutura_socket = sizeof(info);
+ printf("Servidor aceitando chamadas na seguinte url: localhost:%d\n\n",PORT);
 
  if(bind(socket_entrada, (struct sockaddr *)&info, sizeof(info))==0) {
   listen(socket_entrada, 5);
