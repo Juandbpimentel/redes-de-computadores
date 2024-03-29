@@ -1,7 +1,10 @@
-import errno
 import socket
 import sys
 import threading
+import termios, sys
+
+def flush_input():
+    termios.tcflush(sys.stdin, termios.TCIOFLUSH)
 
 
 class thread_with_trace(threading.Thread):
@@ -36,8 +39,8 @@ class thread_with_trace(threading.Thread):
         self.killed = True
 
 
-HOST = "192.168.0.100"  # Endereço do servidor
-PORT = 12345  # Porta para conexão
+#HOST = "192.168.0.17"  # Endereço do servidor
+#PORT = 12345  # Porta para conexão
 BUFFER_SIZE = 1024
 
 
@@ -47,8 +50,10 @@ def receive_messages(client_socket):
             data = client_socket.recv(BUFFER_SIZE)
             if not data:
                 break
-            print(data.decode("utf-8"))
-            print(">> ", end="")
+            flush_input()
+            print("")
+            print('>> '+data.decode("utf-8"),end='\n')
+            
         except socket.error as e:
             print(f"Erro ao receber dados do servidor <Thread>: {e}")
             break
@@ -108,38 +113,35 @@ def fazer_login(client_socket) -> bool:
                         password = input()
                         client_socket.sendall(password.encode("utf-8"))
                     elif rcvd_message == f"Bem vindo {username}!":
-                        print(rcvd_message)
+                        print(rcvd_message,end="\n")
                         return True
                     else:
                         return False
             case "Alguém já está conectado na sua conta.":
                 print(rcvd_message)
                 return False
-
-        client_socket.sendall(username.encode("utf-8"))
-        password = input(client_socket.recv(BUFFER_SIZE).decode("utf-8"))
-        client_socket.sendall(password.encode("utf-8"))
-        print(client_socket.recv(BUFFER_SIZE).decode("utf-8"))
     except Exception as e:
         print(f"Erro ao conectar ao servidor <Login>: {e}")
+        return False
 
 
 def main():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
+        HOST = input("Digite o endereço do servidor: ")
+        PORT = int(input("Digite a porta do servidor: "))
         client_socket.connect((HOST, PORT))
         print("Conectando ao servidor")
         if not fazer_login(client_socket):
             client_socket.close()
             return
-        stop_threads = False
         receive_thread = thread_with_trace(target=receive_messages, args=(client_socket,))
         receive_thread.start()
 
         while True:
-            print(">> ", end="")
             message = input()
             if message.lower() == "close()":
+                client_socket.sendall(message.encode("utf-8"))                    
                 receive_thread.kill()
                 client_socket.close()
                 break

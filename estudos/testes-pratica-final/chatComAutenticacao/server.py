@@ -2,6 +2,7 @@ import errno
 import socket
 import threading
 import sqlite3
+import sys
 
 con = sqlite3.connect("game_data.db", check_same_thread=False)
 cursor = con.cursor()
@@ -9,8 +10,8 @@ cursor.execute(
     """CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, Victories INTEGER)"""
 )
 
-HOST = "192.168.0.100"  # Endereço do servidor
-PORT = 12345  # Porta para conexão
+HOST_default = "localhost"  # Endereço do servidor
+PORT_default = 12345  # Porta para conexão
 BUFFER_SIZE = 1024
 
 clients = {}
@@ -116,13 +117,14 @@ def handle_client(client_socket, addr):
                     break
                 # Processa os dados recebidos
                 message = data.decode("utf-8")
+                if message == "close()":
+                    break
                 print(f"Mensagem de {username}: {message}")
-
                 broadcast(f"{username}: {message}", addr)
             except socket.error as e:
-                if e.errno == errno.WSAECONNRESET:
+                if e.errno == errno.ECONNRESET | errno.ECONNABORTED | errno.EPIPE | errno.WSAECONNRESET:
                     print(
-                        f"Usuário deslogado e desconectado: [ {addr[0]}:{addr[1]} | {username} ]"
+                        f"Erro na conexão, Usuário deslogado e desconectado: [ {addr[0]}:{addr[1]} | {username} ]"
                     )
                     broadcast(f"{username} saiu do chat!", addr)
                     break
@@ -131,6 +133,8 @@ def handle_client(client_socket, addr):
                     break
         del clients[addr]  # Remove o cliente da lista após a desconexão
         del usernames[addr]  # Remove o nome de usuário após a desconexão
+        print(f"Usuário deslogado e desconectado com sucesso: [ {addr[0]}:{addr[1]} | {username} ]")
+        broadcast(f"{username} saiu do chat!", addr)
     except Exception as e:
         print(f"Erro ao lidar com o cliente {addr}: {e}")
     finally:
@@ -141,7 +145,7 @@ def main():
     # Criação do socket TCP/IP
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
+    HOST , PORT = sys.argv[1], int(sys.argv[2])
     try:
         # Vincula o socket ao endereço e porta especificados
         server_socket.bind((HOST, PORT))
