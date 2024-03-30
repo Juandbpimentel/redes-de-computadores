@@ -1,10 +1,16 @@
 import socket
 import sys
 import threading
-import termios, sys
-
-def flush_input():
-    termios.tcflush(sys.stdin, termios.TCIOFLUSH)
+import sys
+if sys.platform == "linux" or sys.platform == "linux2":
+    import termios
+    def flush_input():
+        termios.tcflush(sys.stdin, termios.TCIOFLUSH)
+if sys.platform == "win32":
+    import msvcrt
+    def flush_input():
+        while msvcrt.kbhit():
+            msvcrt.getch()
 
 
 class thread_with_trace(threading.Thread):
@@ -50,7 +56,8 @@ def receive_messages(client_socket):
             data = client_socket.recv(BUFFER_SIZE)
             if not data:
                 break
-            flush_input()
+            if sys.platform == "linux" or sys.platform == "linux2":
+                flush_input()
             print("")
             print('>> '+data.decode("utf-8"),end='\n')
             
