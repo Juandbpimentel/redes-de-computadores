@@ -31,6 +31,7 @@ def udp_client(server, message):
         print("Operação de socket atingiu o timeout.")
     except Exception as e:
         print(f"Ocorreu um erro: {e}")
+    soc.close()
 
 def main():
     print("Iniciando whatsapp")
