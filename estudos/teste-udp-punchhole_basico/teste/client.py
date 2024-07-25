@@ -2,6 +2,9 @@ import socket
 import struct
 import sys
 import threading
+import time
+
+soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def addr_to_bytes(addr):
     return socket.inet_aton(addr[0]) + struct.pack('H', addr[1])
@@ -16,7 +19,6 @@ def recieveMessage(soc: socket):
 
 def udp_client(server, message):
     try:
-        soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         print("Enviando pacote vazio para o servidor...")
         soc.sendto(b'', server)
         
@@ -26,14 +28,14 @@ def udp_client(server, message):
         recieveMessageThread = threading.Thread(target=recieveMessage, args=(soc,))
         recieveMessageThread.start()
         print('conectado ao peer:', *peer)
-        print('Envie uma mensagem para o peer...')
+        time.sleep(3)
+        print('Enviando uma mensagem para o peer...')
         soc.sendto(message.encode(), peer)
+        
     except socket.timeout:
         print("Operação de socket atingiu o timeout.")
     except Exception as e:
         print(f"Ocorreu um erro: {e}")
-    recieveMessageThread.join()
-    soc.close()
 
 def main():
     print("Iniciando whatsapp")
@@ -43,7 +45,9 @@ def main():
     print("tentando conectar to {}:{}".format(host, port))
     server_addr = (host, port)
     udp_client(server_addr, message)
-    print("conectado")
+    print("encerrado")
+    soc.close()
+    return
 
 if __name__ == "__main__":
     main()
