@@ -16,8 +16,8 @@ def udp_server(addr):
     print('conectado:', client_a, client_b)
     soc.sendto(addr_to_bytes(client_b), client_a)
     soc.sendto(addr_to_bytes(client_a), client_b)
-    soc.sendto('1', client_a)
-    soc.sendto('2', client_b)
+    soc.sendto('1'.encode(), client_a)
+    soc.sendto('2'.encode(), client_b)
     
 
 print('rodou')
