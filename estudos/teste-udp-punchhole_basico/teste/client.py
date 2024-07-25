@@ -21,14 +21,13 @@ def udp_client(server, message):
         print('Enviando pacote vazio para o servidor...')
         reciever_soc.sendto(b'', server)
 
-        print('Aguardando resposta do servidor...')
+        print('Aguardando resposta do servidor com peer...')
         data, _ = reciever_soc.recvfrom(1024)
-        data = str(data.decode().split(','))
-        peer = (data.replace('\'','').replace('(','').replace(' ',''),
-                int(data.replace('\'','').replace(')','').replace(' ','')))
-
-        print(peer[0])
-        print(peer[1])
+        data = data.decode().split(',')
+        dataAddr = (data[0].replace('\'','').replace('(','').replace(' ',''))
+        dataSocket = int(data[1].replace(' ','').replace(')',''))
+        peer = (dataAddr, dataSocket)
+        print(peer)
 
         print('Conectado ao peer: ', peer)
         print('Criando thread para receber mensagens')

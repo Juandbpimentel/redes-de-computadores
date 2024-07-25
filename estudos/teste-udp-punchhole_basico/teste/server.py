@@ -17,8 +17,9 @@ def udp_server(addr):
     _, client_a = soc.recvfrom(0)
     _, client_b = soc.recvfrom(0)
     print('conectado:', client_a, client_b)
-    soc.sendto(client_b.encode(), client_a)
-    soc.sendto(client_a.encode(), client_b)
+    #code to transform client tuple in string
+    soc.sendto(str(client_b).encode(), client_a)
+    soc.sendto(str(client_a).encode(), client_b)
 
 
 print('rodou')
