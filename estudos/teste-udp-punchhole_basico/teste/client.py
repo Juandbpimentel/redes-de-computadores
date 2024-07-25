@@ -23,7 +23,8 @@ def udp_client(server, message):
         print("Aguardando resposta do servidor...")
         data, addr = soc.recvfrom(6)
         peer = bytes_to_addr(data)
-        threading.Thread(target=recieveMessage, args=(soc,)).start()
+        recieveMessageThread = threading.Thread(target=recieveMessage, args=(soc,))
+        recieveMessageThread.start()
         print('conectado ao peer:', *peer)
         print('Envie uma mensagem para o peer...')
         soc.sendto(message.encode(), peer)
@@ -31,6 +32,7 @@ def udp_client(server, message):
         print("Operação de socket atingiu o timeout.")
     except Exception as e:
         print(f"Ocorreu um erro: {e}")
+    recieveMessageThread.join()
     soc.close()
 
 def main():
