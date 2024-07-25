@@ -5,14 +5,6 @@ import threading
 import time
 
 
-def addr_to_bytes(addr):
-    return socket.inet_aton(addr[0]) + struct.pack('H', addr[1])
-
-
-def bytes_to_addr(addr):
-    return socket.inet_ntoa(addr[:4]), struct.unpack('H', addr[4:])[0]
-
-
 def recieveMessage(soc: socket.socket):
     print("Aguardando resposta do peer...")
     while True:
@@ -31,7 +23,9 @@ def udp_client(server, message):
 
         print('Aguardando resposta do servidor...')
         data, _ = reciever_soc.recvfrom(1024)
-        peer = bytes_to_addr(data)
+        data = str(data.decode().split(','))
+        peer = (data.replace('\'','').replace('(','').replace(' ',''),
+                int(data.replace('\'','').replace(')','').replace(' ','')))
 
         print(peer[0])
         print(peer[1])
