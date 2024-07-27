@@ -14,12 +14,13 @@ def udp_server(addr):
     soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     soc.bind(addr)
     print('esperando conexão...')
-    _, client_a = soc.recvfrom(0)
-    _, client_b = soc.recvfrom(0)
-    print('conectado:', client_a, client_b)
-    #code to transform client tuple in string
-    soc.sendto(str(client_b).encode(), client_a)
-    soc.sendto(str(client_a).encode(), client_b)
+    
+    _, client_a_reciever_adress = soc.recvfrom(0)
+    _, client_b_reciever_adress = soc.recvfrom(0)
+    
+    print('Clientes conectados:', client_a_reciever_adress, client_b_reciever_adress)
+    soc.sendto(str(client_b_reciever_adress).encode(), client_a_reciever_adress)
+    soc.sendto(str(client_a_reciever_adress).encode(), client_b_reciever_adress)
 
 
 print('rodou')
