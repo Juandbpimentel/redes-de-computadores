@@ -21,6 +21,7 @@ def udp_server(soc, addr):
     print('Clientes conectados:', client_a_reciever_adress, client_b_reciever_adress)
     soc.sendto(str(client_b_reciever_adress).encode(), client_a_reciever_adress)
     soc.sendto(str(client_a_reciever_adress).encode(), client_b_reciever_adress)
+    soc.close()
 
 
 soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
