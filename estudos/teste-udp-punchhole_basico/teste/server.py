@@ -25,7 +25,7 @@ def udp_server(soc, addr):
 
 soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 address = ('0.0.0.0', 10001)
-soc.bind(addr)
+soc.bind(address)
 print('rodou')
 while True:
     print('rodando')
