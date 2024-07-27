@@ -62,7 +62,7 @@ def main():
     time.sleep(1)
 
     print(f'Enviando mensagens para {peer}...')
-    for i in range(5):
+    for i in range(2):
         sender_soc.sendto(str(f"Datagrama {i+1}").encode(), peer)
         time.sleep(1)
     

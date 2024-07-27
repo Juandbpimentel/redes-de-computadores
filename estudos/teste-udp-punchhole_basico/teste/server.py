@@ -1,5 +1,6 @@
 import socket
 import struct
+import time
 
 
 def addr_to_bytes(addr):
@@ -26,3 +27,6 @@ def udp_server(addr):
 print('rodou')
 address = ('0.0.0.0', 10001)
 udp_server(address)
+while True:
+    print('rodando')
+    time.sleep(10)
