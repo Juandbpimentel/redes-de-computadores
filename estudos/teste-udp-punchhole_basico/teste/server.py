@@ -12,7 +12,6 @@ def bytes_to_addr(addr):
 
 
 def udp_server(soc, addr):
-    soc.bind(addr)
     print('esperando conexão...')
     
     _, client_a_reciever_adress = soc.recvfrom(0)
@@ -21,11 +20,13 @@ def udp_server(soc, addr):
     print('Clientes conectados:', client_a_reciever_adress, client_b_reciever_adress)
     soc.sendto(str(client_b_reciever_adress).encode(), client_a_reciever_adress)
     soc.sendto(str(client_a_reciever_adress).encode(), client_b_reciever_adress)
+    soc.close()
 
 
 soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-print('rodou')
 address = ('0.0.0.0', 10001)
+soc.bind(addr)
+print('rodou')
 while True:
     print('rodando')
     udp_server(soc,address)
