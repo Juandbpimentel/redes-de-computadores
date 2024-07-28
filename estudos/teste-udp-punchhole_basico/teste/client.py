@@ -1,18 +1,16 @@
 import socket
-import struct
-import sys
 import threading
 import time
+from networkTools import network
 
 
 def recieveMessage(soc: socket.socket):
     print("Aguardando mensagens do peer...")
     while True:
         try:
-            soc.settimeout(30)
+            soc.settimeout(5)
             data, addr = soc.recvfrom(1024)
             if data != None:
-                print("Mensagem recebida!")
                 print(f'{addr} disse: {data.decode()}')
                 if data.decode() == 'exit':
                     print('Encerrando conexão...')
@@ -27,54 +25,53 @@ def recieveMessage(soc: socket.socket):
             soc.close()
             break
 
-
-def udp_client_connect(reciever_soc,server):
-    try:
-        reciever_soc.sendto(b'', server)
-
-        print('Aguardando resposta do servidor com peer...')
-        data, _ = reciever_soc.recvfrom(1024)
-        data = data.decode().split(',')
-        dataAddr = (data[0].replace('\'','').replace('(','').replace(' ',''))
-        dataSocket = int(data[1].replace(' ','').replace(')',''))
-        peer = (dataAddr, dataSocket)
-        return peer
-    except socket.timeout:
-        print('Operação de socket atingiu o timeout.')
-    except Exception as e:
-        print(f'Ocorreu um erro: {e}')
-
-
 def main():
-    host = sys.argv[1]
-    port = int(sys.argv[2])
+    #server host configuration
+    server_addr = ('35.208.9.89', 10001)
     
-    server_addr = (host, port)
+    #client socket configuration
     reciever_soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sender_soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    reciever_soc.bind(('', 0))
+    sender_soc.bind(('', 0))    
+    port = reciever_soc.getsockname()[1]
     
-    peer = udp_client_connect(reciever_soc,server_addr)
+    try:
+        peer,portMappingService = network.Network.udp_client_connect(reciever_soc,server_addr)
+    except Exception as e:
+        print(f'Ocorreu um erro: {e}')
+        if portMappingService != None: # type: ignore
+            portMappingService.DeletePortMapping(NewRemoteHost='', NewExternalPort=port, NewProtocol='UDP') # type: ignore
+        return
+    
+    if portMappingService == None: # type: ignore
+        print('Erro ao obter peer ou serviço de mapeamento de portas.')
+        return
+    
+    if peer == None:
+        print('Erro ao obter peer ou serviço de mapeamento de portas.')
+        portMappingService.DeletePortMapping(NewRemoteHost='', NewExternalPort=port, NewProtocol='UDP') # type: ignore
+        return
+    
     
     print('Conectado ao peer: ', peer)
-    print('Criando thread para receber mensagens\n\n')
     thread = threading.Thread(target=recieveMessage, args=(reciever_soc,))
     thread.start()
     time.sleep(1)
 
-    print(f'Enviando mensagens para {peer}...')
     for i in range(2):
         sender_soc.sendto(str(f"Datagrama {i+1}").encode(), peer)
         time.sleep(1)
     
-    print(f'\n\nSocket de envio: {sender_soc.getsockname()}\n'+
-          f'Socket de recebimento: {reciever_soc.getsockname()}')
+    
     sender_soc.sendto('exit'.encode(), peer)
-    
     sender_soc.close()
-    
     thread.join()
+    portMappingService.DeletePortMapping(NewRemoteHost='', NewExternalPort=port, NewProtocol='UDP')
     print("Main encerrada")
     return
+    """
+    """
 
 
 if __name__ == "__main__":
