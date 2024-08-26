@@ -11,8 +11,17 @@ config_version=5
 [application]
 
 config/name="Duelo de Palito"
+run/main_scene="res://scenes/LoginScreen.tscn"
 config/features=PackedStringArray("4.2", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[autoload]
+
+Globals="*res://scripts/Globals.gd"
+
+[dotnet]
+
+project/assembly_name="Duelo de Palito"
 
 [rendering]
 
