@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://c3a1bu0oh0n7h"]
+[gd_scene load_steps=2 format=3 uid="uid://c3a1bu0oh0n7h"]
+
+[ext_resource type="Script" path="res://scenes/LoginScreen.gd" id="1_wh5ky"]
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -7,3 +9,4 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_wh5ky")
