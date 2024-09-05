@@ -1,3 +1,6 @@
-[gd_scene format=3 uid="uid://do4xdorgfs8ps"]
+[gd_scene load_steps=2 format=3 uid="uid://do4xdorgfs8ps"]
+
+[ext_resource type="Script" path="res://scripts/duel.gd" id="1_yiavp"]
 
 [node name="Duel" type="Node2D"]
+script = ExtResource("1_yiavp")

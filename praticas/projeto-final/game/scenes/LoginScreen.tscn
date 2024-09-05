@@ -10,3 +10,60 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_wh5ky")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+z_index = -1
+layout_mode = 0
+offset_right = 1284.0
+offset_bottom = 731.0
+color = Color(0.219926, 0.132438, 0.0540183, 1)
+
+[node name="Nickname" type="TextEdit" parent="."]
+layout_mode = 0
+offset_left = 389.0
+offset_top = 177.0
+offset_right = 689.0
+offset_bottom = 217.0
+scale = Vector2(1.5, 1.5)
+placeholder_text = "Nickname"
+
+[node name="Password" type="TextEdit" parent="."]
+layout_mode = 0
+offset_left = 389.0
+offset_top = 257.0
+offset_right = 689.0
+offset_bottom = 297.0
+scale = Vector2(1.5, 1.5)
+placeholder_text = "Password"
+
+[node name="LoginButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 389.0
+offset_top = 376.0
+offset_right = 539.0
+offset_bottom = 407.0
+scale = Vector2(1.25, 1.25)
+theme_override_font_sizes/font_size = 20
+text = "Fazer Login"
+
+[node name="RegisterButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 647.0
+offset_top = 376.0
+offset_right = 797.0
+offset_bottom = 407.0
+scale = Vector2(1.25, 1.25)
+theme_override_font_sizes/font_size = 20
+text = "Registrar-se"
+
+[node name="ReturnButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 41.0
+offset_top = 37.0
+offset_right = 191.0
+offset_bottom = 87.0
+theme_override_font_sizes/font_size = 20
+text = "Voltar"
+
+[connection signal="button_down" from="LoginButton" to="." method="_on_login_button_button_down"]
+[connection signal="button_down" from="RegisterButton" to="." method="_on_register_button_button_down"]

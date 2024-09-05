@@ -1,27 +1,29 @@
 extends Node
 
-var recieverSocket:PacketPeerUDP = null
+# Configurações de rede
+var isNetworkConfigured:bool = false
 
+var udpCommunicationSocket:PacketPeerUDP = null
+
+# 	Informações de rede do adversário
+var portaSocketParDueloUDP:int = 0
+var enderecoParDuelo:String = ""
+
+# Informações e Sockets de rede para se comunicar com o servidor
 var serverCommunicationSocket:StreamPeerTCP = null
 var serverCommunicationSocketPort:int = 0
-
 var serverBroadcastSocket:StreamPeerTCP = null
 var serverBroadcastSocketPort:int = 0
+var serverAdress:String = "127.0.0.1"
 
-var socketUDPParDoDuelo:int = 0
-var enderecoParDuelo:String = ''
+var secondsToWaitForServerResponse = 5
+var secondsToWaitForAdversarioResponse = 5
 
-var enderecoDoServidorPadrao:String = 'localhost'
-var portaDoServidorPadrao:int = 10001
+# Threads
+var configGlobalThreads:Array[Thread] = []
+var genericThreads:Array[Thread] = []
 
-func fazerUpnp(porta:int):
-	var upnp = UPNP.new()
-	upnp.discover()
-	if upnp.add_port_mapping(porta) != 0:
-		print("houve um erro ao fazer a alocação do socket no upnp")
-
-func conectarComServidor(endereco:String,porta:int):
-	pass
-	
-func conectarComPar(endereco:String,porta:int):
-	pass
+# Mensagens recebidas do servidor
+var serverMessagesRecieved:Array[Dictionary] = []
+# Mensagens recebidas do adversário
+var adversarioMessagesRecieved:Array[Dictionary] = []

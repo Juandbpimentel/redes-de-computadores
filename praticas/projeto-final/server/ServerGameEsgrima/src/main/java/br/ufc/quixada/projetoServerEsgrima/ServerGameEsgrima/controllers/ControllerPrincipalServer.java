@@ -1,10 +1,16 @@
 package br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.controllers;
 
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.OperationCode;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.UserRoles;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.UserStatus;
-import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.*;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.BaseOperation;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.response.ConnectionOperationResponse;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.response.LoginOperationResponse;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.MessageOperation;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.request.LoginOperationRequest;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.models.User;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.UserNetInfo;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.services.EncryptionService;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.services.GameService;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.services.LobbyService;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.services.UserService;
@@ -15,10 +21,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class ControllerPrincipalServer implements CommandLineRunner {
@@ -43,13 +48,25 @@ public class ControllerPrincipalServer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println("O server está ligado!");
+        System.out.println("O server está ligado em " + serverIp + ":" + serverCommunicationsSocketPort);
+        User admin = userService.userRepository.findByNickname("kinbofox");
+        if (admin == null) {
+            admin = new User("kinbofox", "admin", 0, 0, UserRoles.ADMIN);
+            admin.setRole(UserRoles.ADMIN);
+            userService.createUser(admin);
+        }
         List<User> users = userService.getAllUsers();
         for (User user : users) {
             usuariosDoSistema.put(user.getNickname(), new UserNetInfo(user, null, null, null, null, 0, null, UserStatus.OFFLINE));
         }
         DatagramSocket socketServerUDP = new DatagramSocket(0, InetAddress.getByName(serverIp));
-        new Thread(() -> handlePrincipalSocketCommunications(socketServerUDP.getLocalPort())).start();
+        new Thread(() -> {
+            try {
+                handlePrincipalSocketCommunications(socketServerUDP.getLocalPort());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
         while (true) {
             byte[] receiveData = new byte[2048];
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
@@ -63,7 +80,7 @@ public class ControllerPrincipalServer implements CommandLineRunner {
         System.out.println("Server desligado");
     }
 
-    public void handlePrincipalSocketCommunications(int portaDeFechamentoDoServidor) {
+    public void handlePrincipalSocketCommunications(int portaDeFechamentoDoServidor) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         DatagramSocket socketServerUDP;
         try {
@@ -87,51 +104,64 @@ public class ControllerPrincipalServer implements CommandLineRunner {
 
             InetAddress clientIPAddress = receivePacket.getAddress();
             int port = receivePacket.getPort();
-
+            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
             String clientMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
-            OperationRequest operationRequest = null;
+
+            BaseOperation baseOperation = null;
             try {
-                operationRequest = objectMapper.readValue(clientMessage, OperationRequest.class);
+                baseOperation = BaseOperation.readBase64(clientMessage);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if (operationRequest == null) {
+            if (baseOperation == null) {
                 continue;
             }
 
-            switch (operationRequest.operation()) {
-                case "connect":
-                    handleClientConnection(clientIPAddress, port, operationRequest);
-                    break;
-                case "close_server":
-                    UserToken userToken = objectMapper.convertValue(operationRequest.data(), UserToken.class);
-                    if (UserRoles.valueOf(userToken.role()) == UserRoles.ADMIN) {
-                        try {
-                            OperationRequest closeRequest = new OperationRequest("closed_server", null);
-                            for (Map.Entry<String, UserNetInfo> entry : usuariosDoSistema.entrySet()) {
-                                UserNetInfo userNetInfo = entry.getValue();
-                                OutputStream saida = userNetInfo.getConexaoTcpParaBroadcast().getOutputStream();
-                                saida.write(objectMapper.writeValueAsString(closeRequest).getBytes());
-                                userNetInfo.getConexaoTcpParaBroadcast().close();
-                                userNetInfo.getConexaoTcpParaComunicacaoSincrona().close();
-                                userNetInfo.getServerSocketTcpParaBroadcast().close();
-                                userNetInfo.getServerSocketTcpParaComunicacaoSincrona().close();
-                            }
-                            socketServerUDP.send(new DatagramPacket("closed_server".getBytes(), "closed_server".length(), InetAddress.getByName(serverIp), portaDeFechamentoDoServidor));
-                            socketServerUDP.close();
-                            return;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+            if (baseOperation.getOperation().equals("connect")) {
+                baseOperation.decryptData();
+                System.out.println(clientIPAddress + ":" + port + " às " + timestamp + ") Operation: " + baseOperation.getOperation() + " | Data: " + baseOperation.getDataAsString());
+                Thread thread = new Thread(() -> {
+                    try {
+                        handleClientConnection(clientIPAddress, port);
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    break;
-                default:
-                    break;
+                });
+                thread.start();
+
+//            switch (baseOperation.operation()) {
+//                case "connect":
+//                    break;
+//                case "close_server":
+//                    UserToken userToken = objectMapper.convertValue(operationRequest.data(), UserToken.class);
+//                    if (UserRoles.valueOf(userToken.role()) == UserRoles.ADMIN) {
+//                        try {
+//                            OperationRequest closeRequest = new OperationRequest("closed_server", null);
+//                            for (Map.Entry<String, UserNetInfo> entry : usuariosDoSistema.entrySet()) {
+//                                UserNetInfo userNetInfo = entry.getValue();
+//                                OutputStream saida = userNetInfo.getConexaoTcpParaBroadcast().getOutputStream();
+//                                saida.write(objectMapper.writeValueAsString(closeRequest).getBytes());
+//                                userNetInfo.getConexaoTcpParaBroadcast().close();
+//                                userNetInfo.getConexaoTcpParaComunicacaoSincrona().close();
+//                                userNetInfo.getServerSocketTcpParaBroadcast().close();
+//                                userNetInfo.getServerSocketTcpParaComunicacaoSincrona().close();
+//                            }
+//                            socketServerUDP.send(new DatagramPacket("closed_server".getBytes(), "closed_server".length(), InetAddress.getByName(serverIp), portaDeFechamentoDoServidor));
+//                            socketServerUDP.close();
+//                            return;
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                    break;
+//                default:
+//                    break;
+//            }
             }
         }
     }
 
-    public void handleClientConnection(InetAddress clientIPAddress, int clientUdpPort, OperationRequest operationRequest) {
+    public void handleClientConnection(InetAddress clientIPAddress, int clientUdpPort) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         DatagramSocket socketServerUDP;
         try {
@@ -141,29 +171,48 @@ public class ControllerPrincipalServer implements CommandLineRunner {
             return;
         }
 
-
-        ServerSocket socketParaComunicacaoDireta, socketParaBroadcast;
+        // Settando os sockets de comunicação tcp com o client
+        ServerSocket socketParaComunicacaoDireta = null;
+        ServerSocket socketParaBroadcast = null;
         Socket conexaoParaComunicacaoDireta = null;
         Socket conexaoParaBroadcast = null;
-        UserLoginRequest user = objectMapper.convertValue(operationRequest.data(), UserLoginRequest.class);
-
         try {
             socketParaComunicacaoDireta = new ServerSocket(0);
             socketParaComunicacaoDireta.setReceiveBufferSize(2048);
-            socketParaComunicacaoDireta.setSoTimeout(1000);
+            socketParaComunicacaoDireta.setSoTimeout(120000);
             socketParaBroadcast = new ServerSocket(0);
             socketParaBroadcast.setReceiveBufferSize(2048);
-            socketParaBroadcast.setSoTimeout(1000);
+            socketParaBroadcast.setSoTimeout(120000);
         } catch (Exception e) {
             e.printStackTrace();
             return;
         }
+        System.out.println("Conexão com o cliente estabelecida: Socket de comunicação direta: " + socketParaComunicacaoDireta.getLocalPort() + " | Socket de broadcast: " + socketParaBroadcast.getLocalPort());
 
-        // avisa que abriu os sockets e manda pro client as portas
-        ConnectionResponse connectionResponse = new ConnectionResponse("openned_sockets", socketParaComunicacaoDireta.getLocalPort(), socketParaBroadcast.getLocalPort());
+
+        // Criando o data para colocar no operation da requisição
+        ConnectionOperationResponse connectionResponse = new ConnectionOperationResponse(socketParaComunicacaoDireta.getLocalPort(), socketParaBroadcast.getLocalPort());
+        String dataString = null;
         try {
-            String responseString = objectMapper.writeValueAsString(connectionResponse);
-            DatagramPacket responsePacket = new DatagramPacket(responseString.getBytes(), responseString.length(), clientIPAddress, clientUdpPort);
+            dataString = objectMapper.writeValueAsString(connectionResponse);
+            if (dataString == null) return;
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                socketParaBroadcast.close();
+                socketParaComunicacaoDireta.close();
+            } catch (Exception ioException) {
+                ioException.printStackTrace();
+            }
+            return;
+        }
+
+
+        // Criando o pacote de resposta para o client e enviando
+        BaseOperation responseBaseOperation = new BaseOperation("establish_connection", dataString, false);
+        responseBaseOperation.encryptData();
+        DatagramPacket responsePacket = new DatagramPacket(responseBaseOperation.stringifyToBase64(), responseBaseOperation.stringifyToBase64().length, clientIPAddress, clientUdpPort);
+        try {
             socketServerUDP.send(responsePacket);
         } catch (Exception e) {
             e.printStackTrace();
@@ -176,7 +225,7 @@ public class ControllerPrincipalServer implements CommandLineRunner {
             return;
         }
 
-        // Faz a aceite de conexão para comunicação direta e broadcast com o client
+        // Fazendo a aceite de conexão para comunicação direta e broadcast com o client
         for (int i = 0; i < 2; i++) {
             try {
                 if (conexaoParaComunicacaoDireta == null) {
@@ -194,42 +243,144 @@ public class ControllerPrincipalServer implements CommandLineRunner {
             }
         }
 
+        System.out.println("Conexão com o cliente estabelecida");
+        // Recebendo pacote de login do cliente
+        String clientMessage = null;
+        OutputStream saidaDeDadosProCliente = null;
+        InputStream entradaDeDadosDoClient = null;
+        try {
+            // Criação dos streams de entrada e saída
+            saidaDeDadosProCliente= conexaoParaComunicacaoDireta.getOutputStream();
+            entradaDeDadosDoClient = conexaoParaComunicacaoDireta.getInputStream();
+
+            // Debugging
+            System.out.println("Streams criados com sucesso");
+            while (entradaDeDadosDoClient.available() == 0) {
+                Thread.sleep(1000);
+            }
+            // Leitura do objeto enviado pelo cliente
+            int size = entradaDeDadosDoClient.available();
+            System.out.println("Tamanho do objeto recebido: " + size);
+            String teste = new String(entradaDeDadosDoClient.readNBytes(size), StandardCharsets.UTF_8);
+
+            // Atribuição da mensagem do cliente
+            clientMessage = teste;
+            System.out.println("Mensagem do cliente: " + clientMessage);
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Trate a exceção conforme necessário
+        }
+
+        //convertendo json em string para objeto BaseOperation
+
+        BaseOperation requestBaseOperation = BaseOperation.readBase64(clientMessage);
+        if (requestBaseOperation == null ||
+                (!requestBaseOperation.getOperation().equals(OperationCode.login.getCode())
+                        && !requestBaseOperation.getOperation().equals(OperationCode.register.getCode()))
+        ) {
+
+            saidaDeDadosProCliente.write(new BaseOperation(OperationCode.error.getCode(), objectMapper.writeValueAsString(new MessageOperation("Erro inexperado ao fazer ou registro")), false).stringifyToBase64());
+            fechaConexoesQuandoDaErro(socketParaComunicacaoDireta, socketParaBroadcast, conexaoParaComunicacaoDireta, conexaoParaBroadcast);
+
+            return;
+        }
+        requestBaseOperation.decryptData();
+        System.out.println("Objeto recebido: " + requestBaseOperation.stringify());
+
+        LoginOperationRequest user = objectMapper.convertValue(requestBaseOperation.getDataAsObject(), LoginOperationRequest.class);
+
+
         //faz o login do usuário
-        User userLogado = userService.login(user.nickname(), user.password());
-        if (userLogado == null) {
+        String errorMessage = null;
+        User userLogadoOuRegistrado = null;
+        Boolean isRegistro = requestBaseOperation.getOperation().equals(OperationCode.register.getCode());
+        try {
+            if (isRegistro)
+                userLogadoOuRegistrado = userService.registerUser(user.nickname(), user.password());
+            else
+                userLogadoOuRegistrado = userService.login(user.nickname(), user.password());
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (e instanceof RuntimeException) {
+                errorMessage = e.getMessage();
+            } else {
+                errorMessage = "Erro inexperado ao fazer login";
+            }
+        }
+
+        // trata erros no login do usuário
+        if (userLogadoOuRegistrado == null) {
+            try {
+                if(isRegistro)
+                    saidaDeDadosProCliente.write(new BaseOperation(OperationCode.register_fail.getCode(), objectMapper.writeValueAsString(new MessageOperation(errorMessage)), false).stringifyToBase64());
+                else
+                    saidaDeDadosProCliente.write(new BaseOperation(OperationCode.login_fail.getCode(), objectMapper.writeValueAsString(new MessageOperation(errorMessage)), false).stringifyToBase64());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             fechaConexoesQuandoDaErro(socketParaComunicacaoDireta, socketParaBroadcast, conexaoParaComunicacaoDireta, conexaoParaBroadcast);
             return;
         }
 
         //confirma se todos os sockets estão conectados corretamente com o cliente e manda os dados para o client
-        LoginResponse response = new LoginResponse("connected", userLogado.toUserToken());
+        if (isRegistro)
+            responseBaseOperation = new BaseOperation(OperationCode.register_success.getCode(), objectMapper.writeValueAsString(new LoginOperationResponse(OperationCode.register_success.getCode(), userLogadoOuRegistrado.toUserToken())),false);
+        else
+            responseBaseOperation = new BaseOperation(OperationCode.login_success.getCode(), objectMapper.writeValueAsString(new LoginOperationResponse(OperationCode.login_success.getCode(), userLogadoOuRegistrado.toUserToken())),false);
         try {
-            String responseString = objectMapper.writeValueAsString(response);
-            if (conexaoParaComunicacaoDireta.getOutputStream() != null) {
-                ObjectOutputStream saida = new ObjectOutputStream(conexaoParaComunicacaoDireta.getOutputStream());
-                saida.writeObject(responseString);
+            responseBaseOperation.encryptData();
+            if (conexaoParaComunicacaoDireta.getOutputStream() != null && conexaoParaBroadcast.getOutputStream() != null) {
+                DataOutputStream saida = new DataOutputStream(conexaoParaComunicacaoDireta.getOutputStream());
+                saida.write(responseBaseOperation.stringifyToBase64());
                 saida.flush();
             }
         } catch (Exception e) {
             fechaConexoesQuandoDaErro(socketParaComunicacaoDireta, socketParaBroadcast, conexaoParaComunicacaoDireta, conexaoParaBroadcast);
             return;
         }
+
+        //recebe a confirmação do cliente que o login foi bem sucedido
         try {
-            ObjectInputStream inputStream = new ObjectInputStream(conexaoParaComunicacaoDireta.getInputStream());
-            String clientMessage = (String) inputStream.readObject();
-            SingleMessageResponse clientResponse = objectMapper.readValue(clientMessage, SingleMessageResponse.class);
+            // Debugging
+            while (entradaDeDadosDoClient.available() == 0) {
+                Thread.sleep(1000);
+            }
+            // Leitura do objeto enviado pelo cliente
+            int size = entradaDeDadosDoClient.available();
+            System.out.println("Tamanho do objeto recebido: " + size);
+            String teste = new String(entradaDeDadosDoClient.readNBytes(size), StandardCharsets.UTF_8);
+
+            // Atribuição da mensagem do cliente
+            clientMessage = teste;
+            System.out.println("Mensagem do cliente: " + clientMessage);
+            requestBaseOperation = BaseOperation.readBase64(clientMessage);
+            System.out.println("Objeto recebido: " + requestBaseOperation.stringify());
+            if (requestBaseOperation == null || !requestBaseOperation.getOperation().equals(OperationCode.ok.getCode())) {
+                fechaConexoesQuandoDaErro(socketParaComunicacaoDireta, socketParaBroadcast, conexaoParaComunicacaoDireta, conexaoParaBroadcast);
+                return;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             fechaConexoesQuandoDaErro(socketParaComunicacaoDireta, socketParaBroadcast, conexaoParaComunicacaoDireta, conexaoParaBroadcast);
             return;
         }
 
-        usuariosDoSistema.replace(userLogado.getNickname(), new UserNetInfo(userLogado, socketParaComunicacaoDireta, conexaoParaComunicacaoDireta, socketParaBroadcast, conexaoParaBroadcast, clientUdpPort, clientIPAddress, UserStatus.ONLINE));
-        new Thread(() -> handleClient(userLogado.getNickname())).start();
-
+        usuariosDoSistema.replace(userLogadoOuRegistrado.getNickname(), new UserNetInfo(userLogadoOuRegistrado, socketParaComunicacaoDireta, conexaoParaComunicacaoDireta, socketParaBroadcast, conexaoParaBroadcast, clientUdpPort, clientIPAddress, UserStatus.ONLINE));
+        User finalUserLogadoOuRegistrado = userLogadoOuRegistrado;
+        new Thread(() -> {
+            try {
+                handleClient(finalUserLogadoOuRegistrado.getNickname());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+        if (isRegistro)
+            System.out.println("Usuário " + userLogadoOuRegistrado.getNickname() + " registrado com sucesso");
+        else
+            System.out.println("Usuário " + userLogadoOuRegistrado.getNickname() + " logado com sucesso");
     }
 
-    public void handleClient(String nickname) {
+    public void handleClient(String nickname) throws Exception{
         ObjectMapper objectMapper = new ObjectMapper();
         UserNetInfo usuarioCliente = usuariosDoSistema.get(nickname);
         int countTimeout = 0;
@@ -244,14 +395,12 @@ public class ControllerPrincipalServer implements CommandLineRunner {
             while (true) {
                 ObjectInputStream inputStream = new ObjectInputStream(usuarioCliente.getConexaoTcpParaComunicacaoSincrona().getInputStream());
                 String clientMessage = (String) inputStream.readObject();
-                OperationRequest operationRequest = objectMapper.readValue(clientMessage, OperationRequest.class);
-                switch (operationRequest.operation()) {
+                BaseOperation baseOperation = objectMapper.readValue(clientMessage, BaseOperation.class);
+                switch (baseOperation.getOperation()) {
                     case "msg":
-                        SingleMessageResponse singleMessageResponse = objectMapper.convertValue(operationRequest.data(), SingleMessageResponse.class);
+                        MessageOperation singleMessageResponse = objectMapper.convertValue(baseOperation.getData(), MessageOperation.class);
                         try {
-                            for (UserNetInfo usuarioReceptor : usuariosDoSistema.values().stream().filter(
-                                    user -> user.getStatus() == UserStatus.ONLINE &&
-                                            !user.getUsuario().getNickname().equals(nickname)).toList()) {
+                            for (UserNetInfo usuarioReceptor : usuariosDoSistema.values().stream().filter(user -> user.getStatus() == UserStatus.ONLINE && !user.getUsuario().getNickname().equals(nickname)).toList()) {
                                 ObjectOutputStream saida = new ObjectOutputStream(usuarioReceptor.getConexaoTcpParaBroadcast().getOutputStream());
                                 saida.writeObject(clientMessage);
                                 saida.flush();
@@ -336,7 +485,6 @@ public class ControllerPrincipalServer implements CommandLineRunner {
 
         } catch (Exception e) {
             e.printStackTrace();
-
             return;
         }
     }

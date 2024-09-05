@@ -10,7 +10,7 @@ import java.util.List;
 
 @Service
 public class UserService {
-    private static BCryptPasswordEncoder passwordEcorder = new BCryptPasswordEncoder(10, new SecureRandom());
+    private static final BCryptPasswordEncoder passwordEncorder = new BCryptPasswordEncoder(10, new SecureRandom());
 
     public final UserRepository userRepository;
 
@@ -18,9 +18,19 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public User createUser(User usuarioNovo) {
-        usuarioNovo.setPassword(passwordEcorder.encode(usuarioNovo.getPassword()));
+    public User registerUser(String nickname, String password) {
+        User usuarioNovo = new User(nickname, password);
+        usuarioNovo.setPassword(passwordEncorder.encode(usuarioNovo.getPassword()));
+        if (userRepository.findByNickname(nickname) != null)
+            throw new RuntimeException("Já existe um usuário com esse nickname");
         return userRepository.save(usuarioNovo);
+    }
+
+    public User createUser(User usuario) {
+        usuario.setPassword(passwordEncorder.encode(usuario.getPassword()));
+        if (userRepository.findByNickname(usuario.getNickname()) != null)
+            throw new RuntimeException("Já existe um usuário com esse nickname");
+        return userRepository.save(usuario);
     }
 
     public void updateUser(User usuario) {
@@ -41,7 +51,7 @@ public class UserService {
         User usuarioBanco = userRepository.findByNickname(nickname);
         if (usuarioBanco == null)
             throw new RuntimeException("Não existe um usuário com esse nickname");
-        if (!passwordEcorder.matches(password, usuarioBanco.getPassword()))
+        if (!passwordEncorder.matches(password, usuarioBanco.getPassword()))
             throw new RuntimeException("Sua senha não está certa");
         return usuarioBanco;
     }

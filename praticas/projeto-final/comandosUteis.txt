@@ -1,0 +1,1 @@
+Geração de parametros para encryptação: 'C:\Program Files\Git\usr\bin\openssl.exe' enc -aes-256-cbc -pass pass:secret -P -md sha512 -pbkdf2

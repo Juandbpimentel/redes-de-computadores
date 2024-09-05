@@ -35,11 +35,20 @@ public class User {
         return victories - defeats;
     }
 
-    public User(String nickname, String password, int victories, int defeats) {
+    public User(String nickname, String password, int victories, int defeats, UserRoles role) {
         this.nickname = nickname;
         this.password = password;
         this.victories = victories;
         this.defeats = defeats;
+        this.role = UserRoles.USER;
+    }
+
+    public User(String nickname, String password){
+        this.nickname = nickname;
+        this.password = password;
+        this.victories = 0;
+        this.defeats = 0;
+        this.role = UserRoles.USER;
     }
 
     public UserToken toUserToken(){
