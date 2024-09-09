@@ -144,30 +144,32 @@ static func defineServerPortsAndAdress(adress:String, communicationPort:int, bro
 static func alocCommunicationSocket():
 	Globals.serverCommunicationSocket = StreamPeerTCP.new()
 	Globals.serverCommunicationSocket.bind(0)
-	print("socket alocado: ", Globals.serverCommunicationSocket.get_local_port())
+	print("socket alocado de comunicacao tcp: ", Globals.serverCommunicationSocket.get_local_port())
 
 
 static func alocBroadcastSocket():
 	Globals.serverBroadcastSocket = StreamPeerTCP.new()
 	Globals.serverBroadcastSocket.bind(0)
-	print("socket alocado: ", Globals.serverBroadcastSocket.get_local_port())
+	print("socket alocado de broadcast tcp: ", Globals.serverBroadcastSocket.get_local_port())
 
 static func fazerUpnp(porta:int) -> Error:
 	var upnp = UPNP.new()
-	var err = upnp.discover()
+	var err = upnp.discover(4000,5)
 	
+
 	if err != OK:
 		push_error(str(err))
 		print("houve um erro ao tentar descobrir o upnp")
-		return FAILED
+		return err
+	var upnpGateway:UPNPDevice = upnp.get_device(0)
+	assert (upnpGateway.is_valid_gateway(), "Era pra ser true")
 
-	if upnp.get_gateway() and upnp.get_gateway().is_valid_gateway():
-		err = upnp.add_port_mapping(porta, porta, ProjectSettings.get_setting("application/config/name"), "UDP")
+	err = upnp.get_device(0).add_port_mapping(porta, porta, ProjectSettings.get_setting("application/config/name"), "UDP", 0)
 
 	if err != OK:
 		push_error(str(err))
 		print("houve um erro ao tentar fazer o upnp")
-		return FAILED
+		return err
 	return OK
 
 
@@ -181,6 +183,12 @@ static func alocAllSockets():
 static func alocRecieverSocket():
 	Globals.udpCommunicationSocket = PacketPeerUDP.new()
 	Globals.udpCommunicationSocket.bind(0)
+	print("socket alocado de comunicação udp: ", Globals.udpCommunicationSocket.get_local_port())
+	var err = NetworkUtils.fazerUpnp(Globals.udpCommunicationSocket.get_local_port())
+	if err != OK:
+		push_error("erro ao tentar fazer upnp")
+		print("erro ao tentar fazer upnp, erro numero: ", err)
+		return FAILED
 
 static func closeAllSockets():
 	Globals.udpCommunicationSocket.close()
