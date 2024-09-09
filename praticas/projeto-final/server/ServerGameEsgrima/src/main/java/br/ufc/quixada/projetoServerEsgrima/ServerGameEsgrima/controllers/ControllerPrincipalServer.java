@@ -212,6 +212,7 @@ public class ControllerPrincipalServer implements CommandLineRunner {
         BaseOperation responseBaseOperation = new BaseOperation("establish_connection", dataString, false);
         responseBaseOperation.encryptData();
         DatagramPacket responsePacket = new DatagramPacket(responseBaseOperation.stringifyToBase64(), responseBaseOperation.stringifyToBase64().length, clientIPAddress, clientUdpPort);
+        System.out.println("Enviando pacote de resposta para o client, dados do pacote: " + clientIPAddress + ":" + clientUdpPort + " | " + responseBaseOperation.stringify());
         try {
             socketServerUDP.send(responsePacket);
         } catch (Exception e) {

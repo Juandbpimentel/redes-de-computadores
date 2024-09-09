@@ -123,6 +123,7 @@ func _fazer_loginOuRegistro(nicknamePassado, senhaPassada, isLogin:bool) -> void
 	logged = true
 	waitingServerResponse = false
 	print("Login feito com sucesso! Nickname: ", nickname," | Senha: ", password)
+	$DeuCertoLoginLabel.visible = true
 	
 
 

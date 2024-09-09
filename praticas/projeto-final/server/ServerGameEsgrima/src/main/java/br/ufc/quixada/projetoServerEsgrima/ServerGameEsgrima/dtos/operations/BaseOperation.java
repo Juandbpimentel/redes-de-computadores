@@ -7,7 +7,6 @@ import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.res
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.services.EncryptionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -33,7 +32,7 @@ public class BaseOperation {
 
     public BaseOperation(String operation, JsonNode jsonNode, Boolean isEncrypted) {
         this.operation = operation;
-        this.data = jsonNode.asText() == null? null : jsonNode.asText();
+        this.data = jsonNode.asText() == null ? null : jsonNode.asText();
         this.isEncrypted = isEncrypted;
     }
 
@@ -41,7 +40,7 @@ public class BaseOperation {
         try {
             JsonNode node = new ObjectMapper().readTree(jsonString);
             this.operation = node.get("operation").asText();
-            this.data = node.get("data").asText().isEmpty()? null : node.get("data").asText();
+            this.data = node.get("data").asText().isEmpty() ? null : node.get("data").asText();
             this.isEncrypted = node.get("isEncrypted").asBoolean();
         } catch (Exception e) {
             e.printStackTrace();
@@ -53,22 +52,22 @@ public class BaseOperation {
 
     public BaseOperation(JsonNode jsonNode) {
         this.operation = jsonNode.get("operation").asText();
-        this.data = jsonNode.get("data").asText().isEmpty()? null : jsonNode.get("data").asText();
+        this.data = jsonNode.get("data").asText().isEmpty() ? null : jsonNode.get("data").asText();
         this.isEncrypted = jsonNode.get("isEncrypted").asBoolean();
     }
 
-    public String stringify() {
+    public static BaseOperation readBase64(String base64) {
         try {
-            return new ObjectMapper().writeValueAsString(new BaseOperationRecord(this.operation, this.data, this.isEncrypted));
+            return new BaseOperation(new ObjectMapper().readTree(new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8)));
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public static BaseOperation readBase64(String base64) {
+    public String stringify() {
         try {
-            return new BaseOperation(new ObjectMapper().readTree(new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8)));
+            return new ObjectMapper().writeValueAsString(new BaseOperationRecord(this.operation, this.data, this.isEncrypted));
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -94,10 +93,10 @@ public class BaseOperation {
     }
 
 
-    public static BaseOperation parseJsonToOperation(String json) {
+    public static BaseOperationRecord parseJsonToBaseOperationRecord(String json) {
         try {
             JsonNode node = new ObjectMapper().readTree(json);
-            return new BaseOperation(node.get("operation").asText(), node.get("data").asText(), node.get("isEncrypted").asBoolean());
+            return new BaseOperationRecord(node.get("operation").asText(), node.get("data").asText(), node.get("isEncrypted").asBoolean());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -138,22 +137,17 @@ public class BaseOperation {
         }
         ObjectMapper mapper = new ObjectMapper();
         try {
-            switch (this.operation) {
-                case "msg", "error", "login_fail", "register_fail":
-                    return mapper.readValue(this.data, MessageOperation.class);
-                case "login", "register":
-                    return mapper.readValue(this.data, LoginOperationRequest.class);
-                case "login_success", "register_success":
-                    return mapper.readValue(this.data, UserToken.class);
-                case "establish_connection":
-                    return mapper.readValue(this.data, ConnectionOperationResponse.class);
-                case "ranking":
-                    return mapper.readValue(this.data, RankingResponse.class);
+            return switch (this.operation) {
+                case "msg", "error", "login_fail", "register_fail" ->
+                        mapper.readValue(this.data, MessageOperation.class);
+                case "login", "register" -> mapper.readValue(this.data, LoginOperationRequest.class);
+                case "login_success", "register_success" -> mapper.readValue(this.data, UserToken.class);
+                case "establish_connection" -> mapper.readValue(this.data, ConnectionOperationResponse.class);
+                case "ranking" -> mapper.readValue(this.data, RankingResponse.class);
                 // Casos que entram no default:
                 // "ok", "connect", "logout", "get_ranking", "logout_success", "connection_success", "connection_fail", "logout_fail":
-                default:
-                    return null;
-            }
+                default -> null;
+            };
         } catch (Exception e) {
             e.printStackTrace();
             return null;
