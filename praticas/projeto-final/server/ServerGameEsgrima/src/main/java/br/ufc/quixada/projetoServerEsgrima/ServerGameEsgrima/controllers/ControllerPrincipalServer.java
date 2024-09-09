@@ -366,7 +366,7 @@ public class ControllerPrincipalServer implements CommandLineRunner {
             return;
         }
 
-        usuariosDoSistema.replace(userLogadoOuRegistrado.getNickname(), new UserNetInfo(userLogadoOuRegistrado, socketParaComunicacaoDireta, conexaoParaComunicacaoDireta, socketParaBroadcast, conexaoParaBroadcast, clientUdpPort, clientIPAddress, UserStatus.ONLINE));
+        usuariosDoSistema.put(userLogadoOuRegistrado.getNickname(), new UserNetInfo(userLogadoOuRegistrado, socketParaComunicacaoDireta, conexaoParaComunicacaoDireta, socketParaBroadcast, conexaoParaBroadcast, clientUdpPort, clientIPAddress, UserStatus.ONLINE));
         User finalUserLogadoOuRegistrado = userLogadoOuRegistrado;
         new Thread(() -> {
             try {
@@ -384,6 +384,10 @@ public class ControllerPrincipalServer implements CommandLineRunner {
     public void handleClient(String nickname) throws Exception{
         ObjectMapper objectMapper = new ObjectMapper();
         UserNetInfo usuarioCliente = usuariosDoSistema.get(nickname);
+        if (usuarioCliente == null) {
+            System.out.println("Usuário não encontrado");
+            return;
+        }
         int countTimeout = 0;
         try {
             usuarioCliente.getConexaoTcpParaBroadcast().setSoTimeout(120000);

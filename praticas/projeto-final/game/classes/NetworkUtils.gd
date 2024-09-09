@@ -1,5 +1,21 @@
 class_name NetworkUtils extends Node
 
+enum LoginScreenErrors {
+	OK,
+	timeout,
+	falha_ao_enviar_pacote_tcp,
+	falha_ao_enviar_pacote_udp,
+	falha_ao_receber_pacote, 
+	resposta_nula,
+	erro_ao_estabelecer_conexao,
+	erro_ao_esperar_pacote, 
+	resposta_inesperada_do_servidor,
+	erro_inexperado_ao_fazer_ou_registro,
+	usuario_ja_existe,
+	usuario_nao_encontrado,
+	senha_incorreta
+}
+
 
 static func sendMessageWithUDPCommunicationSocket(message:Variant, address:String, port:int, encrypt:bool) -> Error:
 	var finalMessage:OperationRequestBody = OperationRequestBody.new(message)
@@ -35,7 +51,7 @@ static func killSocketWaitOnTimeout(timeout:int) -> void:
 			newSocket.close()
 			break
 
-static func recieveMessageWithUDPCommunicationSocket() -> OperationRequestBody:
+static func recieveMessageWithUDPCommunicationSocket() -> Variant:
 	var thread = Thread.new()
 	thread.start(killSocketWaitOnTimeout.bind(5))
 	if Globals.udpCommunicationSocket.wait() == OK:
@@ -43,18 +59,12 @@ static func recieveMessageWithUDPCommunicationSocket() -> OperationRequestBody:
 		if response != null:
 			var responseString = EncryptAndDecodeUtils.decode_base64(response.get_string_from_utf8()).get_string_from_utf8()
 			if responseString == "kill":
-				push_error("timeout")
-				print("timeout")
-				return null
+				return Globals.LoginScreenErrors.timeout
 			return OperationRequestBody.new(responseString)
 		else:
-			push_error("resposta nula")
-			print("resposta nula")
-			return null
+			return Globals.LoginScreenErrors.resposta_nula
 	else:
-		push_error("erro ao esperar pacote")
-		print("erro ao esperar pacote")
-		return null
+		return Globals.LoginScreenErrors.erro_ao_esperar_pacote
 
 
 static func sendMessageWithTCPCommunicationSocket(message:Variant) -> Error:
@@ -124,14 +134,12 @@ static func connectToServer() -> Error:
 		push_error(str(err))
 		print("houve um erro ao tentar conectar ao servidor")
 		return FAILED
-	print("Status Socket: ", Globals.serverCommunicationSocket.get_status())
 
 	err = Globals.serverBroadcastSocket.connect_to_host(Globals.serverAdress, Globals.serverBroadcastSocketPort)
 	if err != OK:
 		push_error(str(err))
 		print("houve um erro ao tentar conectar ao servidor")
 		return FAILED
-	print("Status Socket: ", Globals.serverBroadcastSocket.get_status())
 	return OK
 
 
@@ -140,6 +148,10 @@ static func defineServerPortsAndAdress(adress:String, communicationPort:int, bro
 	Globals.serverCommunicationSocketPort = communicationPort
 	Globals.serverBroadcastSocketPort = broadcastPort
 
+static func alocRecieverSocket():
+	Globals.udpCommunicationSocket = PacketPeerUDP.new()
+	Globals.udpCommunicationSocket.bind(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao)
+	print("socket alocado de comunicação udp: ", EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao)
 
 static func alocCommunicationSocket():
 	Globals.serverCommunicationSocket = StreamPeerTCP.new()
@@ -152,26 +164,6 @@ static func alocBroadcastSocket():
 	Globals.serverBroadcastSocket.bind(0)
 	print("socket alocado de broadcast tcp: ", Globals.serverBroadcastSocket.get_local_port())
 
-static func fazerUpnp(porta:int) -> Error:
-	var upnp = UPNP.new()
-	var err = upnp.discover(4000,5)
-	
-
-	if err != OK:
-		push_error(str(err))
-		print("houve um erro ao tentar descobrir o upnp")
-		return err
-	var upnpGateway:UPNPDevice = upnp.get_device(0)
-	assert (upnpGateway.is_valid_gateway(), "Era pra ser true")
-
-	err = upnp.get_device(0).add_port_mapping(porta, porta, ProjectSettings.get_setting("application/config/name"), "UDP", 0)
-
-	if err != OK:
-		push_error(str(err))
-		print("houve um erro ao tentar fazer o upnp")
-		return err
-	return OK
-
 
 static func alocAllSockets():
 	alocRecieverSocket()
@@ -180,15 +172,6 @@ static func alocAllSockets():
 	Globals.isNetworkConfigured = true
 
 
-static func alocRecieverSocket():
-	Globals.udpCommunicationSocket = PacketPeerUDP.new()
-	Globals.udpCommunicationSocket.bind(0)
-	print("socket alocado de comunicação udp: ", Globals.udpCommunicationSocket.get_local_port())
-	var err = NetworkUtils.fazerUpnp(Globals.udpCommunicationSocket.get_local_port())
-	if err != OK:
-		push_error("erro ao tentar fazer upnp")
-		print("erro ao tentar fazer upnp, erro numero: ", err)
-		return FAILED
 
 static func closeAllSockets():
 	Globals.udpCommunicationSocket.close()
@@ -196,3 +179,27 @@ static func closeAllSockets():
 	Globals.serverBroadcastSocket.disconnect_from_host()
 	Globals.serverBroadcastSocket.disconnect_from_host()
 	Globals.isNetworkConfigured = false
+
+
+static func fazerUpnp(porta:int) -> Error:
+	var upnp = UPNP.new()
+	var discover_result = upnp.discover(2000)
+	
+
+	if discover_result != UPNP.UPNP_RESULT_SUCCESS:
+		push_error(str(discover_result))
+		print("houve um erro ao tentar descobrir o upnp")
+		return discover_result
+
+	for i in range(upnp.get_device_count()):
+		print("Device ",i,": ", upnp.get_device(i).description_url)
+
+	var upnpGateway:UPNPDevice = upnp.get_gateway()
+
+	var err = upnpGateway.add_port_mapping(porta, porta, ProjectSettings.get_setting("application/config/name"), "UDP", 0)
+
+	if err != OK:
+		push_error(str(err))
+		print("houve um erro ao tentar fazer o upnp")
+		return err
+	return OK

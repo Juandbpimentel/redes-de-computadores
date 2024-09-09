@@ -27,3 +27,22 @@ var genericThreads:Array[Thread] = []
 var serverMessagesRecieved:Array[Dictionary] = []
 # Mensagens recebidas do adversário
 var adversarioMessagesRecieved:Array[Dictionary] = []
+
+
+enum LoginScreenErrors {
+	NONE,
+	login_sucesso,
+	registro_sucesso,
+	timeout,
+	falha_ao_enviar_pacote_tcp,
+	falha_ao_enviar_pacote_udp,
+	falha_ao_receber_pacote, 
+	resposta_nula,
+	erro_ao_estabelecer_conexao,
+	erro_ao_esperar_pacote, 
+	resposta_inesperada_do_servidor,
+	erro_inexperado_ao_fazer_login_ou_registro,
+	usuario_ja_existe,
+	usuario_nao_encontrado,
+	senha_incorreta
+}
