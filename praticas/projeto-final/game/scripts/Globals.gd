@@ -22,6 +22,7 @@ var secondsToWaitForAdversarioResponse = 5
 # Threads
 var configGlobalThreads:Array[Thread] = []
 var genericThreads:Array[Thread] = []
+var abortThreads = false
 
 # Mensagens recebidas do servidor
 var serverMessagesRecieved:Array[Dictionary] = []

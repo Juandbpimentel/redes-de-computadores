@@ -3,7 +3,9 @@ package br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.controllers;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.OperationCode;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.UserRoles;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.UserStatus;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.UserToken;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.BaseOperation;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.BaseOperationRecord;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.response.ConnectionOperationResponse;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.response.LoginOperationResponse;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.MessageOperation;
@@ -32,7 +34,7 @@ public class ControllerPrincipalServer implements CommandLineRunner {
     private final UserService userService;
     private final LobbyService lobbyService;
     private final GameService gameService;
-    private final Map<String, UserNetInfo> usuariosDoSistema;
+    private static Map<String, UserNetInfo> usuariosDoSistema;
 
     @Value("${portaDoSocketUDP}")
     private Integer serverCommunicationsSocketPort;
@@ -46,6 +48,7 @@ public class ControllerPrincipalServer implements CommandLineRunner {
         this.usuariosDoSistema = new HashMap<>();
     }
 
+    //Main function
     @Override
     public void run(String... args) throws Exception {
         System.out.println("O server está ligado em " + serverIp + ":" + serverCommunicationsSocketPort);
@@ -80,6 +83,9 @@ public class ControllerPrincipalServer implements CommandLineRunner {
         System.out.println("Server desligado");
     }
 
+
+
+    // Handle server messages
     public void handlePrincipalSocketCommunications(int portaDeFechamentoDoServidor) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         DatagramSocket socketServerUDP;
@@ -117,50 +123,54 @@ public class ControllerPrincipalServer implements CommandLineRunner {
                 continue;
             }
 
-            if (baseOperation.getOperation().equals("connect")) {
-                baseOperation.decryptData();
-                System.out.println(clientIPAddress + ":" + port + " às " + timestamp + ") Operation: " + baseOperation.getOperation() + " | Data: " + baseOperation.getDataAsString());
-                Thread thread = new Thread(() -> {
-                    try {
-                        handleClientConnection(clientIPAddress, port);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+            switch (baseOperation.getOperation()) {
+                case "connect":
+                    baseOperation.decryptData();
+                    System.out.println(clientIPAddress + ":" + port + " às " + timestamp + ") Operation: " + baseOperation.getOperation() + " | Data: " + baseOperation.getDataAsString());
+                    Thread thread = new Thread(() -> {
+                        try {
+                            handleClientConnection(clientIPAddress, port);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    thread.start();
+                    break;
+                case "close_server":
+                    baseOperation.decryptData();
+                    UserToken userToken = objectMapper.convertValue(baseOperation.getDataAsJsonNode(), UserToken.class);
+                    if (UserRoles.valueOf(userToken.role()) == UserRoles.ADMIN) {
+                        try {
+                            BaseOperation closeRequest = new BaseOperation("closed_server",objectMapper.writeValueAsString(new MessageOperation("closed_server")),  false);
+                            for (Map.Entry<String, UserNetInfo> entry : usuariosDoSistema.entrySet()) {
+                                if (entry.getValue().getStatus() == UserStatus.OFFLINE) {
+                                    continue;
+                                }
+                                UserNetInfo userNetInfo = entry.getValue();
+                                OutputStream saida = userNetInfo.getConexaoTcpParaBroadcast().getOutputStream();
+                                saida.write(objectMapper.writeValueAsString(closeRequest).getBytes());
+                                userNetInfo.getConexaoTcpParaBroadcast().close();
+                                userNetInfo.getConexaoTcpParaComunicacaoSincrona().close();
+                                userNetInfo.getServerSocketTcpParaBroadcast().close();
+                                userNetInfo.getServerSocketTcpParaComunicacaoSincrona().close();
+                            }
+                            socketServerUDP.send(new DatagramPacket("closed_server".getBytes(), "closed_server".length(), InetAddress.getByName(serverIp), portaDeFechamentoDoServidor));
+                            socketServerUDP.close();
+                            return;
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                });
-                thread.start();
-
-//            switch (baseOperation.operation()) {
-//                case "connect":
-//                    break;
-//                case "close_server":
-//                    UserToken userToken = objectMapper.convertValue(operationRequest.data(), UserToken.class);
-//                    if (UserRoles.valueOf(userToken.role()) == UserRoles.ADMIN) {
-//                        try {
-//                            OperationRequest closeRequest = new OperationRequest("closed_server", null);
-//                            for (Map.Entry<String, UserNetInfo> entry : usuariosDoSistema.entrySet()) {
-//                                UserNetInfo userNetInfo = entry.getValue();
-//                                OutputStream saida = userNetInfo.getConexaoTcpParaBroadcast().getOutputStream();
-//                                saida.write(objectMapper.writeValueAsString(closeRequest).getBytes());
-//                                userNetInfo.getConexaoTcpParaBroadcast().close();
-//                                userNetInfo.getConexaoTcpParaComunicacaoSincrona().close();
-//                                userNetInfo.getServerSocketTcpParaBroadcast().close();
-//                                userNetInfo.getServerSocketTcpParaComunicacaoSincrona().close();
-//                            }
-//                            socketServerUDP.send(new DatagramPacket("closed_server".getBytes(), "closed_server".length(), InetAddress.getByName(serverIp), portaDeFechamentoDoServidor));
-//                            socketServerUDP.close();
-//                            return;
-//                        } catch (Exception e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                    break;
-//                default:
-//                    break;
-//            }
+                    break;
+                default:
+                    break;
             }
         }
     }
 
+
+
+    // Handle Client Start Connection
     public void handleClientConnection(InetAddress clientIPAddress, int clientUdpPort) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         DatagramSocket socketServerUDP;
@@ -381,6 +391,10 @@ public class ControllerPrincipalServer implements CommandLineRunner {
             System.out.println("Usuário " + userLogadoOuRegistrado.getNickname() + " logado com sucesso");
     }
 
+
+
+
+    //Handle Connected Client
     public void handleClient(String nickname) throws Exception{
         ObjectMapper objectMapper = new ObjectMapper();
         UserNetInfo usuarioCliente = usuariosDoSistema.get(nickname);
@@ -393,6 +407,7 @@ public class ControllerPrincipalServer implements CommandLineRunner {
             usuarioCliente.getConexaoTcpParaBroadcast().setSoTimeout(120000);
             usuarioCliente.getConexaoTcpParaComunicacaoSincrona().setSoTimeout(120000);
         } catch (Exception e) {
+            System.out.println("Erro ao setar timeout");
             e.printStackTrace();
             return;
         }

@@ -167,6 +167,7 @@ static func alocBroadcastSocket():
 
 static func alocAllSockets():
 	alocRecieverSocket()
+	UPNPJava.addPortMapping(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, "udp")	
 	alocCommunicationSocket()
 	alocBroadcastSocket()
 	Globals.isNetworkConfigured = true
@@ -178,28 +179,5 @@ static func closeAllSockets():
 	Globals.serverCommunicationSocket.disconnect_from_host()
 	Globals.serverBroadcastSocket.disconnect_from_host()
 	Globals.serverBroadcastSocket.disconnect_from_host()
+	UPNPJava.deletePortMapping(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao,EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, "udp")
 	Globals.isNetworkConfigured = false
-
-
-static func fazerUpnp(porta:int) -> Error:
-	var upnp = UPNP.new()
-	var discover_result = upnp.discover(2000)
-	
-
-	if discover_result != UPNP.UPNP_RESULT_SUCCESS:
-		push_error(str(discover_result))
-		print("houve um erro ao tentar descobrir o upnp")
-		return discover_result
-
-	for i in range(upnp.get_device_count()):
-		print("Device ",i,": ", upnp.get_device(i).description_url)
-
-	var upnpGateway:UPNPDevice = upnp.get_gateway()
-
-	var err = upnpGateway.add_port_mapping(porta, porta, ProjectSettings.get_setting("application/config/name"), "UDP", 0)
-
-	if err != OK:
-		push_error(str(err))
-		print("houve um erro ao tentar fazer o upnp")
-		return err
-	return OK

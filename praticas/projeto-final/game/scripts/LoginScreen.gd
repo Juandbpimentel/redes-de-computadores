@@ -251,15 +251,14 @@ func _handle_errors():
 	logged = false
 	waitingServerResponse = false
 	
-		
-	
-func on_tree_exiting():
-	for thread in localThreads:
-		thread.free()
-		print("thread assassinada")
-	for thread in Globals.configGlobalThreads:
-		thread.free()
-		print("thread assassinada")
+
+func _on_tree_exiting() -> void:
+	for thread:Thread in localThreads:
+		thread.wait_to_finish()
+		print("thread terminada")
+	for thread:Thread in Globals.configGlobalThreads:
+		thread.wait_to_finish()
+		print("thread terminada")
 	NetworkUtils.closeAllSockets()
 	print("saindo da cena")
 	get_tree().quit()

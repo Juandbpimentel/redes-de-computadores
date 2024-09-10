@@ -138,7 +138,7 @@ public class BaseOperation {
         ObjectMapper mapper = new ObjectMapper();
         try {
             return switch (this.operation) {
-                case "msg", "error", "login_fail", "register_fail" ->
+                case "msg", "error", "login_fail", "register_fail","closed_server" ->
                         mapper.readValue(this.data, MessageOperation.class);
                 case "login", "register" -> mapper.readValue(this.data, LoginOperationRequest.class);
                 case "login_success", "register_success" -> mapper.readValue(this.data, UserToken.class);
