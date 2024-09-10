@@ -187,6 +187,7 @@ func _handle_errors():
 		info_label.add_theme_color_override("font_color",Color(0,1,0))
 		logged = true
 		waitingServerResponse = false
+		get_tree().change_scene_to_file("res://scenes/MenuPrincipal.tscn")
 		err = Globals.LoginScreenErrors.NONE
 		return
 	elif err == Globals.LoginScreenErrors.registro_sucesso:
@@ -195,6 +196,7 @@ func _handle_errors():
 		info_label.add_theme_color_override("font_color",Color(0,1,0))
 		logged = true
 		waitingServerResponse = false
+		get_tree().change_scene_to_file("res://scenes/MenuPrincipal.tscn")
 		err = Globals.LoginScreenErrors.NONE
 		return
 	match err:
@@ -252,13 +254,20 @@ func _handle_errors():
 	waitingServerResponse = false
 	
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		Globals.abortThreads = true
+		for thread:Thread in localThreads:
+			thread.wait_to_finish()
+			print("thread terminada")
+		for thread:Thread in Globals.configGlobalThreads:
+			thread.wait_to_finish()
+			print("thread terminada")
+		NetworkUtils.closeAllSockets()
+		_on_tree_exiting()
+		get_tree().quit()
+	else:
+		_on_tree_exiting()
+
 func _on_tree_exiting() -> void:
-	for thread:Thread in localThreads:
-		thread.wait_to_finish()
-		print("thread terminada")
-	for thread:Thread in Globals.configGlobalThreads:
-		thread.wait_to_finish()
-		print("thread terminada")
-	NetworkUtils.closeAllSockets()
 	print("saindo da cena")
-	get_tree().quit()
