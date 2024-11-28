@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://tx5pw3tg6oed"]
+[gd_scene load_steps=3 format=3 uid="uid://tx5pw3tg6oed"]
 
+[ext_resource type="Script" path="res://scenes/menu_principal.gd" id="1_8s1rt"]
 [ext_resource type="PackedScene" uid="uid://yagejx3kompr" path="res://scenes/DesafioModal.tscn" id="1_r4uvi"]
 
 [node name="MenuPrincipal" type="Node2D"]
+script = ExtResource("1_8s1rt")
 
 [node name="MenuControl" type="Control" parent="."]
 layout_mode = 3
@@ -16,59 +18,76 @@ offset_right = 1280.0
 offset_bottom = 718.0
 color = Color(0.219926, 0.132438, 0.0540183, 1)
 
-[node name="LoginButton" type="Button" parent="MenuControl"]
+[node name="BatalhaAleatoriaButton" type="Button" parent="MenuControl"]
 visible = false
 layout_mode = 0
 offset_left = 389.0
-offset_top = 376.0
+offset_top = 352.0
 offset_right = 749.0
-offset_bottom = 412.0
+offset_bottom = 424.0
 scale = Vector2(1.25, 1.25)
 theme_override_font_sizes/font_size = 20
-text = "Fazer Login"
+text = "Batalha Aleatória
+"
 
-[node name="RegisterButton" type="Button" parent="MenuControl"]
+[node name="VerRankingButton" type="Button" parent="MenuControl"]
 visible = false
 layout_mode = 0
 offset_left = 389.0
-offset_top = 533.0
+offset_top = 509.0
 offset_right = 749.0
-offset_bottom = 569.0
+offset_bottom = 581.0
 scale = Vector2(1.25, 1.25)
 theme_override_font_sizes/font_size = 20
-text = "Registrar-se"
+text = "Ver Ranking"
 
-[node name="ReturnButton" type="Button" parent="MenuControl"]
-layout_mode = 0
-offset_left = 41.0
-offset_top = 37.0
-offset_right = 191.0
-offset_bottom = 87.0
-theme_override_font_sizes/font_size = 20
-text = "Voltar"
-
-[node name="Info_Label" type="Label" parent="MenuControl"]
-visible = false
+[node name="LogoutButton" type="Button" parent="MenuControl"]
 layout_mode = 0
 offset_left = 395.0
-offset_top = 81.0
+offset_top = 442.0
+offset_right = 839.0
+offset_bottom = 532.0
+theme_override_font_sizes/font_size = 29
+text = "Logout"
+
+[node name="Title_Label" type="Label" parent="MenuControl"]
+layout_mode = 0
+offset_left = 395.0
+offset_top = 40.0
 offset_right = 833.0
-offset_bottom = 131.0
-text = "Login Feito Com Sucesso"
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 40
+text = "Menu Principal"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="Status_Label" type="Label" parent="MenuControl"]
-visible = false
 layout_mode = 0
 offset_left = 395.0
-offset_top = 159.0
+offset_top = 150.0
 offset_right = 833.0
-offset_bottom = 182.0
+offset_bottom = 173.0
 text = "Login Feito Com Sucesso"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Modal" parent="MenuControl" instance=ExtResource("1_r4uvi")]
+[node name="DesafiarButton" type="Button" parent="MenuControl"]
+layout_mode = 0
+offset_left = 389.0
+offset_top = 254.0
+offset_right = 749.0
+offset_bottom = 326.0
+scale = Vector2(1.25, 1.25)
+theme_override_font_sizes/font_size = 20
+text = "Desafiar Adversário
+"
+
+[node name="PopupDesafio" parent="." instance=ExtResource("1_r4uvi")]
+visible = false
+
+[connection signal="button_down" from="MenuControl/BatalhaAleatoriaButton" to="." method="_on_batalha_aleatoria_button_button_down"]
+[connection signal="button_down" from="MenuControl/VerRankingButton" to="." method="_on_ver_ranking_button_button_down"]
+[connection signal="button_down" from="MenuControl/LogoutButton" to="." method="_on_logout_button_button_down"]
+[connection signal="button_down" from="MenuControl/DesafiarButton" to="." method="_on_desafiar_button_button_down"]

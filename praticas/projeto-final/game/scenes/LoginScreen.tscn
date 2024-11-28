@@ -1,8 +1,8 @@
 [gd_scene load_steps=5 format=3 uid="uid://c3a1bu0oh0n7h"]
 
 [ext_resource type="Script" path="res://scripts/LoginScreen.gd" id="1_wh5ky"]
-[ext_resource type="Texture2D" uid="uid://bsxfpt4vi2bq2" path="res://images/P1_Sprite_sheet1.png" id="2_k3se3"]
-[ext_resource type="Texture2D" uid="uid://dfnqodplxsdby" path="res://images/P1_Sprite_sheet1-sheet.png" id="3_a4vst"]
+[ext_resource type="Texture2D" uid="uid://dc3w7n7hpa23p" path="res://images/P1_Sprite_sheet_oficial.png" id="2_k3se3"]
+[ext_resource type="Texture2D" uid="uid://dj74vjh7u5l02" path="res://images/P2_Sprite_sheet_oficial.png" id="3_a4vst"]
 
 [sub_resource type="Theme" id="Theme_qp5pi"]
 
@@ -19,15 +19,15 @@ offset_bottom = 40.0
 z_index = -1
 layout_mode = 0
 offset_right = 1284.0
-offset_bottom = 731.0
+offset_bottom = 720.0
 color = Color(0.219926, 0.132438, 0.0540183, 1)
 
 [node name="Nickname" type="TextEdit" parent="MenuControl"]
 layout_mode = 0
 offset_left = 389.0
-offset_top = 177.0
+offset_top = 289.0
 offset_right = 689.0
-offset_bottom = 217.0
+offset_bottom = 329.0
 scale = Vector2(1.5, 1.5)
 theme = SubResource("Theme_qp5pi")
 placeholder_text = "Nickname"
@@ -35,18 +35,18 @@ placeholder_text = "Nickname"
 [node name="Password" type="TextEdit" parent="MenuControl"]
 layout_mode = 0
 offset_left = 389.0
-offset_top = 257.0
+offset_top = 417.0
 offset_right = 689.0
-offset_bottom = 297.0
+offset_bottom = 457.0
 scale = Vector2(1.5, 1.5)
 placeholder_text = "Password"
 
 [node name="LoginButton" type="Button" parent="MenuControl"]
 layout_mode = 0
 offset_left = 389.0
-offset_top = 376.0
+offset_top = 536.0
 offset_right = 539.0
-offset_bottom = 412.0
+offset_bottom = 572.0
 scale = Vector2(1.25, 1.25)
 theme_override_font_sizes/font_size = 20
 text = "Fazer Login"
@@ -54,41 +54,91 @@ text = "Fazer Login"
 [node name="RegisterButton" type="Button" parent="MenuControl"]
 layout_mode = 0
 offset_left = 647.0
-offset_top = 376.0
+offset_top = 536.0
 offset_right = 797.0
-offset_bottom = 412.0
+offset_bottom = 572.0
 scale = Vector2(1.25, 1.25)
 theme_override_font_sizes/font_size = 20
 text = "Registrar-se"
 
 [node name="ReturnButton" type="Button" parent="MenuControl"]
 layout_mode = 0
-offset_left = 41.0
-offset_top = 37.0
-offset_right = 191.0
-offset_bottom = 87.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 190.0
+offset_bottom = 90.0
 theme_override_font_sizes/font_size = 20
-text = "Voltar"
+text = "Sair do Jogo"
 
 [node name="Info_Label" type="Label" parent="MenuControl"]
 layout_mode = 0
 offset_left = 389.0
-offset_top = 454.0
-offset_right = 827.0
-offset_bottom = 477.0
+offset_top = 617.0
+offset_right = 835.0
+offset_bottom = 640.0
 text = "Login Feito Com Sucesso"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
+[node name="Title_Label" type="Label" parent="MenuControl"]
+layout_mode = 0
+offset_left = 406.0
+offset_top = 40.0
+offset_right = 828.0
+offset_bottom = 109.0
+theme_override_font_sizes/font_size = 50
+text = "Esgrima De Palito"
+
+[node name="Nick_Label" type="Label" parent="MenuControl"]
+layout_mode = 0
+offset_left = 389.0
+offset_top = 240.0
+offset_right = 468.0
+offset_bottom = 263.0
+text = "Nickname"
+
+[node name="Senha_Label" type="Label" parent="MenuControl"]
+layout_mode = 0
+offset_left = 389.0
+offset_top = 376.0
+offset_right = 437.0
+offset_bottom = 399.0
+text = "Senha
+"
+
 [node name="P1SpriteSheet1" type="Sprite2D" parent="."]
-position = Vector2(144, 576)
+position = Vector2(-114, 592)
+scale = Vector2(4, 4)
 texture = ExtResource("2_k3se3")
+offset = Vector2(64, 0)
+hframes = 6
+frame = 3
+
+[node name="P1SpriteSheet2" type="Sprite2D" parent="."]
+position = Vector2(749, 592)
+scale = Vector2(4, 4)
+texture = ExtResource("2_k3se3")
+offset = Vector2(64, 0)
+hframes = 6
+frame = 1
 
 [node name="P1SpriteSheet1-sheet" type="Sprite2D" parent="."]
-position = Vector2(672, 594)
+position = Vector2(-27, 592)
+scale = Vector2(4, 4)
 texture = ExtResource("3_a4vst")
+offset = Vector2(64, 0)
+hframes = 6
+
+[node name="P1SpriteSheet1-sheet2" type="Sprite2D" parent="."]
+position = Vector2(854, 591)
+scale = Vector2(4, 4)
+texture = ExtResource("3_a4vst")
+offset = Vector2(64, 0)
+hframes = 6
+frame = 3
 
 [connection signal="tree_exiting" from="." to="." method="_on_tree_exiting"]
 [connection signal="button_down" from="MenuControl/LoginButton" to="." method="_on_login_button_button_down"]
 [connection signal="button_down" from="MenuControl/RegisterButton" to="." method="_on_register_button_button_down"]
+[connection signal="button_down" from="MenuControl/ReturnButton" to="." method="_on_return_button_button_down"]

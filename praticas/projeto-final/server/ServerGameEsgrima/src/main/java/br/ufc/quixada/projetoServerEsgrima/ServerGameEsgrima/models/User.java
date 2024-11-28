@@ -54,4 +54,12 @@ public class User {
     public UserToken toUserToken(){
         return new UserToken(nickname, victories, defeats, getRanqueamento(), role.toString());
     }
+
+    public void defeated(){
+        defeats++;
+    }
+
+    public void won(){
+        victories++;
+    }
 }

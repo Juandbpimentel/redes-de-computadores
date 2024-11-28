@@ -1,6 +1,8 @@
 package br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations;
 
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.Utils.OperationCode;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.UserToken;
+import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.request.ChallengeOperationRequest;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.request.LoginOperationRequest;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.response.ConnectionOperationResponse;
 import br.ufc.quixada.projetoServerEsgrima.ServerGameEsgrima.dtos.operations.response.RankingResponse;
@@ -19,19 +21,19 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 public class BaseOperation {
-    private String operation;
+    private OperationCode operation;
     private String data;
     private Boolean isEncrypted;
 
 
     public BaseOperation(String operation, String jsonString, Boolean isEncrypted) {
-        this.operation = operation;
+        this.operation = OperationCode.valueOf(operation);
         this.data = jsonString;
         this.isEncrypted = isEncrypted;
     }
 
     public BaseOperation(String operation, JsonNode jsonNode, Boolean isEncrypted) {
-        this.operation = operation;
+        this.operation = OperationCode.valueOf(operation);
         this.data = jsonNode.asText() == null ? null : jsonNode.asText();
         this.isEncrypted = isEncrypted;
     }
@@ -39,7 +41,7 @@ public class BaseOperation {
     public BaseOperation(String jsonString) {
         try {
             JsonNode node = new ObjectMapper().readTree(jsonString);
-            this.operation = node.get("operation").asText();
+            this.operation = OperationCode.valueOf(node.get("operation").asText());
             this.data = node.get("data").asText().isEmpty() ? null : node.get("data").asText();
             this.isEncrypted = node.get("isEncrypted").asBoolean();
         } catch (Exception e) {
@@ -51,7 +53,7 @@ public class BaseOperation {
     }
 
     public BaseOperation(JsonNode jsonNode) {
-        this.operation = jsonNode.get("operation").asText();
+        this.operation = OperationCode.valueOf(jsonNode.get("operation").asText());
         this.data = jsonNode.get("data").asText().isEmpty() ? null : jsonNode.get("data").asText();
         this.isEncrypted = jsonNode.get("isEncrypted").asBoolean();
     }
@@ -67,7 +69,7 @@ public class BaseOperation {
 
     public String stringify() {
         try {
-            return new ObjectMapper().writeValueAsString(new BaseOperationRecord(this.operation, this.data, this.isEncrypted));
+            return new ObjectMapper().writeValueAsString(new BaseOperationRecord(this.operation.getCode(), this.data, this.isEncrypted));
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -137,12 +139,13 @@ public class BaseOperation {
         }
         ObjectMapper mapper = new ObjectMapper();
         try {
-            return switch (this.operation) {
-                case "msg", "error", "login_fail", "register_fail","closed_server" ->
+            return switch (this.operation.getCode()) {
+                case "msg", "error", "login_fail", "register_fail","closed_server","aleatory_battle" ->
                         mapper.readValue(this.data, MessageOperation.class);
                 case "login", "register" -> mapper.readValue(this.data, LoginOperationRequest.class);
                 case "login_success", "register_success" -> mapper.readValue(this.data, UserToken.class);
                 case "establish_connection" -> mapper.readValue(this.data, ConnectionOperationResponse.class);
+                case "challenge" -> mapper.readValue(this.data, ChallengeOperationRequest.class);
                 case "ranking" -> mapper.readValue(this.data, RankingResponse.class);
                 // Casos que entram no default:
                 // "ok", "connect", "logout", "get_ranking", "logout_success", "connection_success", "connection_fail", "logout_fail":

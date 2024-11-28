@@ -42,7 +42,6 @@ func parse_json_string_to_operation(json: String) -> void:
 	var err = jsonParser.parse(json)
 	if err != OK:
 		push_error("erro ao tentar parsear o json")
-		print("erro ao tentar parsear o json")
 		return
 	self.operation = jsonParser.data["operation"]
 	self.data = jsonParser.data["data"]
@@ -74,7 +73,6 @@ func get_data_as_dictionary() -> Dictionary:
 		var err = jsonParser.parse(self.data)
 		if err != OK:
 			push_error("erro ao tentar parsear o json")
-			print("erro ao tentar parsear o json")
 			return {}
 		return jsonParser.data
 
@@ -97,7 +95,6 @@ func decrypt_data() -> void:
 	var err = jsonParser.parse(EncryptAndDecodeUtils.decryptMessage(get_data_as_string()).get_string_from_utf8())
 	if err != OK:
 		push_error("erro ao tentar parsear o json")
-		print("erro ao tentar parsear o json")
 		return
 	self.data = jsonParser.data
 	isEncrypted = false

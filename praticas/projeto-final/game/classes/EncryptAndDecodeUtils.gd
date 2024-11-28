@@ -49,17 +49,14 @@ static func unpad(padded_data: PackedByteArray) -> void:
 	var inLen = padded_data.size()
 	if inLen == 0:
 		push_error(error_string(1))
-		print("entrada vazia")
 		return
 	var padChar = padded_data[inLen - 1]
 	if padChar > 16:
 		push_error(error_string(1))
-		print("tamanho do padding > 16")
 		return
 	for i in range(inLen - padChar, inLen):
 		if padded_data[i] != padChar:
 			push_error(error_string(1))
-			print("caractere de padding inesperado")
 			return
 	padded_data.resize(inLen - padChar)
 

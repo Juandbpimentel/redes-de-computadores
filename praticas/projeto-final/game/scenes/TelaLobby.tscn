@@ -1,0 +1,74 @@
+[gd_scene load_steps=4 format=3 uid="uid://b0eg5wfn0nwn7"]
+
+[ext_resource type="Texture2D" uid="uid://dc3w7n7hpa23p" path="res://images/P1_Sprite_sheet_oficial.png" id="1_m1woi"]
+[ext_resource type="Texture2D" uid="uid://dj74vjh7u5l02" path="res://images/P2_Sprite_sheet_oficial.png" id="2_fdakt"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vb50n"]
+
+[node name="TelaLobby" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+z_index = -1
+offset_right = 1284.0
+offset_bottom = 720.0
+color = Color(0.219926, 0.132438, 0.0540183, 1)
+
+[node name="P1SpriteSheetOficial" type="Sprite2D" parent="."]
+position = Vector2(304, 464)
+scale = Vector2(8, 8)
+texture = ExtResource("1_m1woi")
+hframes = 6
+
+[node name="P2SpriteSheetOficial" type="Sprite2D" parent="."]
+position = Vector2(976, 464)
+scale = Vector2(8, 8)
+texture = ExtResource("2_fdakt")
+hframes = 6
+frame = 5
+
+[node name="Player1Label" type="Label" parent="."]
+offset_left = 98.0
+offset_top = 168.0
+offset_right = 266.0
+offset_bottom = 203.0
+theme_override_font_sizes/font_size = 25
+text = "Player 1 Label"
+
+[node name="Player2Label" type="Label" parent="."]
+offset_left = 1016.0
+offset_top = 168.0
+offset_right = 1184.0
+offset_bottom = 203.0
+theme_override_font_sizes/font_size = 25
+text = "Player 2 Label"
+
+[node name="Player1ButtonReady" type="Button" parent="."]
+offset_left = 326.0
+offset_top = 528.0
+offset_right = 387.0
+offset_bottom = 559.0
+scale = Vector2(2, 2)
+theme_override_colors/font_disabled_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_focus_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_disabled_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_vb50n")
+text = "Pronto"
+
+[node name="Player2ButtonReady" type="Button" parent="."]
+offset_left = 852.0
+offset_top = 528.0
+offset_right = 913.0
+offset_bottom = 559.0
+scale = Vector2(2, 2)
+theme_override_styles/normal = SubResource("StyleBoxFlat_vb50n")
+text = "Pronto"

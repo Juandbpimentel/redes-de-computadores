@@ -28,13 +28,11 @@ static func sendMessageWithUDPCommunicationSocket(message:Variant, address:Strin
 	var err = Globals.udpCommunicationSocket.set_dest_address(address, port)
 	if err != OK:
 		push_error(str(err))
-		print("houve um erro ao tentar enviar o pacote")
 		return FAILED
 
 	err = Globals.udpCommunicationSocket.put_packet(Marshalls.raw_to_base64(finalMessage.stringify().to_utf8_buffer()).to_utf8_buffer())
 	if err != OK:
 		push_error(str(err))
-		print("houve um erro ao tentar enviar o pacote")
 		return FAILED
 	return OK
 
@@ -69,33 +67,26 @@ static func recieveMessageWithUDPCommunicationSocket() -> Variant:
 
 static func sendMessageWithTCPCommunicationSocket(message:Variant) -> Error:
 	if Globals.serverCommunicationSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
-		print("esperando conectar")
 		while Globals.serverCommunicationSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
 			Globals.serverCommunicationSocket.poll()
 			pass
-	print("poll: ", Globals.serverCommunicationSocket.get_status())
 	if Globals.serverCommunicationSocket.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 		push_error("socket não conectado")
-		print("socket não conectado")
 		return FAILED
 	var finalMessage:OperationRequestBody = OperationRequestBody.new(message)
-	print("enviando mensagem: ", finalMessage.stringify())
 	var err = Globals.serverCommunicationSocket.put_data(Marshalls.raw_to_base64(finalMessage.stringify().to_utf8_buffer()).to_utf8_buffer())
-	print("Mensagem enviada")
 	if err != OK:
 		push_error(str(err))
-		print("houve um erro ao tentar enviar o pacote")
 		return FAILED
+	print("mensagem enviada: ", message)
 	return OK
 
 
 static func recieveMessageWithTCPCommunicationSocket(bufferSize:int) -> OperationRequestBody:
 	if Globals.serverCommunicationSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
-		print("esperando conectar")
 		while Globals.serverCommunicationSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
 			Globals.serverCommunicationSocket.poll()
 			pass
-	print("poll: ", Globals.serverCommunicationSocket.get_status())
 	
 	var count = 0
 	while Globals.serverCommunicationSocket.get_available_bytes() == 0:
@@ -103,21 +94,57 @@ static func recieveMessageWithTCPCommunicationSocket(bufferSize:int) -> Operatio
 		count += 1
 		if count >= Globals.secondsToWaitForServerResponse:
 			push_error("timeout")
-			print("timeout")
 			return null
-	print("recebendo mensagem")
 	if Globals.serverCommunicationSocket.get_status() == StreamPeerTCP.STATUS_CONNECTED:
 		var response: Array = Globals.serverCommunicationSocket.get_partial_data(bufferSize)
 		if response != null:
-			print("mensagem recebida: ", EncryptAndDecodeUtils.decode_base64(response[1].get_string_from_utf8()).get_string_from_utf8())
 			return OperationRequestBody.new(EncryptAndDecodeUtils.decode_base64(response[1].get_string_from_utf8()).get_string_from_utf8())
 		else:
 			push_error("resposta nula")
-			print("resposta nula")
 			return null
 	else:
 		push_error("erro ao esperar pacote")
-		print("erro ao esperar pacote")
+		return null
+
+static func sendMessageWithTCPBroadcastSocket(message:Variant) -> Error:
+	if Globals.serverBroadcastSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
+		while Globals.serverBroadcastSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
+			Globals.serverBroadcastSocket.poll()
+			pass
+	if Globals.serverBroadcastSocket.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		push_error("socket não conectado")
+		return FAILED
+	var finalMessage:OperationRequestBody = OperationRequestBody.new(message)
+	var err = Globals.serverBroadcastSocket.put_data(Marshalls.raw_to_base64(finalMessage.stringify().to_utf8_buffer()).to_utf8_buffer())
+	if err != OK:
+		push_error(str(err))
+		return FAILED
+	return OK
+
+
+static func recieveMessageWithTCPBroadcastSocket(bufferSize:int) -> OperationRequestBody:
+	if Globals.serverBroadcastSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
+		while Globals.serverBroadcastSocket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
+			Globals.serverBroadcastSocket.poll()
+			pass
+	
+	var count = 0
+	while Globals.serverBroadcastSocket != null && Globals.serverBroadcastSocket.get_available_bytes() == 0:
+		OS.delay_msec(1000)
+		count += 1
+		if count >= Globals.secondsToWaitForServerResponse:
+			push_error("timeout")
+			return null
+	
+	if Globals.serverBroadcastSocket != null && Globals.serverBroadcastSocket.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+		var response: Array = Globals.serverBroadcastSocket.get_partial_data(bufferSize)
+		if response != null:
+			return OperationRequestBody.new(EncryptAndDecodeUtils.decode_base64(response[1].get_string_from_utf8()).get_string_from_utf8())
+		else:
+			push_error("resposta nula")
+			return null
+	else:
+		push_error("erro ao esperar pacote")
 		return null
 
 
@@ -129,55 +156,88 @@ static func recieveMessageWithTCPCommunicationSocket(bufferSize:int) -> Operatio
 
 
 static func connectToServer() -> Error:
-	var err = Globals.serverCommunicationSocket.connect_to_host(Globals.serverAdress, Globals.serverCommunicationSocketPort)
+	var err = Globals.serverCommunicationSocket.connect_to_host(Globals.serverAdress, Globals.serverTCPPort)
 	if err != OK:
 		push_error(str(err))
-		print("houve um erro ao tentar conectar ao servidor")
 		return FAILED
 
-	err = Globals.serverBroadcastSocket.connect_to_host(Globals.serverAdress, Globals.serverBroadcastSocketPort)
+	err = Globals.serverBroadcastSocket.connect_to_host(Globals.serverAdress, Globals.serverTCPPort)
 	if err != OK:
 		push_error(str(err))
-		print("houve um erro ao tentar conectar ao servidor")
 		return FAILED
 	return OK
 
 
-static func defineServerPortsAndAdress(adress:String, communicationPort:int, broadcastPort:int,):
+static func defineServerPortsAndAdress(adress:String, serverPort:int):
 	Globals.serverAdress = adress
-	Globals.serverCommunicationSocketPort = communicationPort
-	Globals.serverBroadcastSocketPort = broadcastPort
+	Globals.serverTCPPort = serverPort
 
 static func alocRecieverSocket():
 	Globals.udpCommunicationSocket = PacketPeerUDP.new()
 	Globals.udpCommunicationSocket.bind(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao)
-	print("socket alocado de comunicação udp: ", EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao)
+	
+	if Globals.udpCommunicationSocket.get_local_port() != EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao:
+		if Globals.udpCommunicationSocket.get_local_port() == 0:
+			Globals.udpCommunicationSocket.close()
+			Globals.udpCommunicationSocket = PacketPeerUDP.new()
+			Globals.udpCommunicationSocket.bind(0)
+		EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao = Globals.udpCommunicationSocket.get_local_port()
+		
+	
+	UPNPJava.addPortMapping(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, "udp")
+	Globals.isUDPConfigured = true
 
-static func alocCommunicationSocket():
+static func alocServerSockets():
 	Globals.serverCommunicationSocket = StreamPeerTCP.new()
 	Globals.serverCommunicationSocket.bind(0)
-	print("socket alocado de comunicacao tcp: ", Globals.serverCommunicationSocket.get_local_port())
-
-
-static func alocBroadcastSocket():
 	Globals.serverBroadcastSocket = StreamPeerTCP.new()
 	Globals.serverBroadcastSocket.bind(0)
-	print("socket alocado de broadcast tcp: ", Globals.serverBroadcastSocket.get_local_port())
-
+	Globals.isServerConnected = true
 
 static func alocAllSockets():
-	alocRecieverSocket()
-	UPNPJava.addPortMapping(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, "udp")	
-	alocCommunicationSocket()
-	alocBroadcastSocket()
+	if Globals.isNetworkConfigured:
+		return
+	
+	if !Globals.isUDPConfigured:
+		alocRecieverSocket()
+	if !Globals.isServerConnected:
+		alocServerSockets()
+
+	if !Globals.isUDPConfigured:
+		Globals.isNetworkConfigured = false
+		closeConnectionToServer()
+		return
+	elif !Globals.isServerConnected:
+		Globals.isNetworkConfigured = false
+		closeUDP()
+		return
+	
 	Globals.isNetworkConfigured = true
 
 
 
-static func closeAllSockets():
-	Globals.udpCommunicationSocket.close()
+
+static func closeConnectionToServer():
+	if !Globals.isServerConnected:
+		return
 	Globals.serverCommunicationSocket.disconnect_from_host()
 	Globals.serverBroadcastSocket.disconnect_from_host()
-	Globals.serverBroadcastSocket.disconnect_from_host()
-	UPNPJava.deletePortMapping(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao,EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, "udp")
+	Globals.serverBroadcastSocket = null
+	Globals.serverCommunicationSocket = null
+	Globals.isServerConnected = false
+	Globals.isNetworkConfigured = false
+
+static func closeUDP():
+	if !Globals.isUDPConfigured:
+		return
+	Globals.udpCommunicationSocket.close()
+	print("socket fechado de comunicação udp: ", EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao)
+	UPNPJava.deletePortMapping(EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, EnvironmentVariables.portaDoSocketDeRecebimentoDePacotesUDPPadrao, "udp")
+	Globals.udpCommunicationSocket = null
+	Globals.isUDPConfigured = false
+	Globals.isNetworkConfigured = false
+
+static func closeAllSockets():
+	closeConnectionToServer()
+	closeUDP()
 	Globals.isNetworkConfigured = false

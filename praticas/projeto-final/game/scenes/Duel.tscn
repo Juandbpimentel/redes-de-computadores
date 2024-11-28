@@ -1,6 +1,22 @@
-[gd_scene load_steps=2 format=3 uid="uid://do4xdorgfs8ps"]
+[gd_scene load_steps=4 format=3 uid="uid://do4xdorgfs8ps"]
 
 [ext_resource type="Script" path="res://scripts/duel.gd" id="1_yiavp"]
+[ext_resource type="PackedScene" uid="uid://byfutierbmcmj" path="res://entity/Player.tscn" id="2_ue3dp"]
+[ext_resource type="PackedScene" uid="uid://d3rs71bgrhy3r" path="res://entity/Player2.tscn" id="3_67krv"]
 
 [node name="Duel" type="Node2D"]
 script = ExtResource("1_yiavp")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_top = 2.0
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.219926, 0.132438, 0.0540183, 1)
+
+[node name="Player" parent="." instance=ExtResource("2_ue3dp")]
+position = Vector2(236, 528)
+scale = Vector2(6, 6)
+
+[node name="Player2" parent="." instance=ExtResource("3_67krv")]
+position = Vector2(981, 528)
+scale = Vector2(6, 6)

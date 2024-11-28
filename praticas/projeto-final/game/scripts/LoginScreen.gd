@@ -50,13 +50,16 @@ func _fazer_loginOuRegistro(nicknamePassado, senhaPassada, isLogin:bool) -> void
 				err = Globals.LoginScreenErrors.falha_ao_enviar_pacote_udp
 				return
 
-
 	var response:Variant = NetworkUtils.recieveMessageWithUDPCommunicationSocket()
 	if !response is OperationRequestBody:
 		err = response
 		match err:
-			Globals.LoginScreenErrors.timeout, Globals.LoginScreenErrors.erro_ao_esperar_pacote:
+			Globals.LoginScreenErrors.timeout:
 				push_error("O Servidor está inacessível, tente novamente mais tarde")
+				NetworkUtils.closeAllSockets()
+				return
+			Globals.LoginScreenErrors.erro_ao_esperar_pacote:
+				push_error("Erro ao receber portas para conexão com o servidor, tente novamente mais tarde")
 				NetworkUtils.closeAllSockets()
 				return
 			_:
@@ -74,7 +77,7 @@ func _fazer_loginOuRegistro(nicknamePassado, senhaPassada, isLogin:bool) -> void
 		return
 	
 
-	NetworkUtils.defineServerPortsAndAdress(EnvironmentVariables.enderecoDoServidorPadrao, response.data["comunicationPort"], response.data["broadcastPort"])
+	NetworkUtils.defineServerPortsAndAdress(EnvironmentVariables.enderecoDoServidorPadrao, response.data["serverPort"])
 	err = NetworkUtils.connectToServer()
 	if err != OK:
 		push_error("Erro ao tentar estabelecer conexão com o servidor")
@@ -82,7 +85,7 @@ func _fazer_loginOuRegistro(nicknamePassado, senhaPassada, isLogin:bool) -> void
 		err = Globals.LoginScreenErrors.erro_ao_estabelecer_conexao
 		return
 	print("conectado ao servidor")
-	print("portas do servidor: ", response.data["comunicationPort"], " | ", response.data["broadcastPort"])
+	print("portas do servidor: ", response.data["serverPort"])
 
 
 	if isLogin:
@@ -118,17 +121,22 @@ func _fazer_loginOuRegistro(nicknamePassado, senhaPassada, isLogin:bool) -> void
 					push_error("Erro durante o login, a senha está incorreta")				
 					return
 				
-				"Erro inexperado ao fazer ou registro":
+				"Erro inesperado ao fazer login ou registro":
 					err = Globals.LoginScreenErrors.erro_inexperado_ao_fazer_login_ou_registro
-					push_error("Erro inexperado durante o login ou registro, tente novamente mais tarde")
+					push_error("Erro inesperado durante o login ou registro, tente novamente mais tarde")
+					return
+				
+				"Usuário já está logado":
+					err = Globals.LoginScreenErrors.usuario_ja_esta_logado
+					push_error("Erro ao tentar se logar, usuário já está logado")
 					return
 				_:
 					err = Globals.LoginScreenErrors.erro_inexperado_ao_fazer_login_ou_registro
-					push_error("Erro inexperado durante o login ou registro, tente novamente mais tarde")
+					push_error("Erro inesperado durante o login ou registro, tente novamente mais tarde")
 					return
 		else:
 			err = Globals.LoginScreenErrors.erro_inexperado_ao_fazer_login_ou_registro
-			push_error("Erro inexperado durante o login ou registro, tente novamente mais tarde")
+			push_error("Erro inesperado durante o login ou registro, tente novamente mais tarde")
 			return
 
 
@@ -145,6 +153,9 @@ func _fazer_loginOuRegistro(nicknamePassado, senhaPassada, isLogin:bool) -> void
 		err = Globals.LoginScreenErrors.login_sucesso
 	else:
 		err = Globals.LoginScreenErrors.registro_sucesso
+	Globals.userToken = response.data["userToken"]
+	Globals.status = Globals.StatusEnum.online
+	print("userToken: ", Globals.userToken)
 	logged = true
 	
 
@@ -248,6 +259,10 @@ func _handle_errors():
 			info_label.add_theme_color_override("font_color",Color(1,0,0))
 			info_label.text = "Erro ao tentar receber mensagem do servidor, tente novamente mais tarde"
 			info_label.visible = true
+		Globals.LoginScreenErrors.usuario_ja_esta_logado:
+			info_label.add_theme_color_override("font_color",Color(1,0,0))
+			info_label.text = "Erro ao tentar se logar, usuário já está logado"
+			info_label.visible = true
 
 	err = Globals.LoginScreenErrors.NONE
 	logged = false
@@ -266,8 +281,18 @@ func _notification(what: int) -> void:
 		NetworkUtils.closeAllSockets()
 		_on_tree_exiting()
 		get_tree().quit()
-	else:
-		_on_tree_exiting()
 
 func _on_tree_exiting() -> void:
 	print("saindo da cena")
+
+
+func _on_return_button_button_down() -> void:
+	print("saindo do game")
+	if waitingServerResponse:
+		print("aguardando resposta do servidor")
+		info_label.add_theme_color_override("font_color",Color(1,1,1))
+		info_label.text = "Se Conectando com o servidor, espere um pouco..."
+		info_label.visible = true
+		return
+	notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	pass # Replace with function body.

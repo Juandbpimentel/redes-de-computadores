@@ -16,9 +16,8 @@ import java.net.Socket;
 @AllArgsConstructor
 public class UserNetInfo {
     private User usuario;
-    private ServerSocket serverSocketTcpParaComunicacaoSincrona;
+    private ServerSocket serverSocketTcp;
     private Socket conexaoTcpParaComunicacaoSincrona;
-    private ServerSocket serverSocketTcpParaBroadcast;
     private Socket conexaoTcpParaBroadcast;
 
     private int portaUdpUsuario;
